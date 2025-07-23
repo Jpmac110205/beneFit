@@ -1,0 +1,6 @@
+{
+    "dart.flutterSdkPath": "~/flutter",
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "cmake.sourceDirectory": "/Users/jpmac1102/Desktop/Visual Studio Projects/flutter/game/linux",
+    "C_Cpp.errorSquiggles": "disabled"
+}
