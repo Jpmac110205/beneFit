@@ -15,20 +15,6 @@ class FriendsListScreen extends StatefulWidget {
 class _FriendsListScreenState extends State<FriendsListScreen> {
   List<FriendsList> confirmedFriends = [
     // Initial mock/test data
-    FriendsList(
-      streak: 5,
-      lastActive: DateTime.now(),
-      uid: 'test_uid1',
-      username: 'jack1128',
-      name: 'Jack',
-    ),
-    FriendsList(
-      streak: 50,
-      lastActive: DateTime.now().subtract(const Duration(hours: 4)),
-      uid: 'test_uid2',
-      username: 'tbones',
-      name: 'Tyler',
-    ),
   ];
 
   bool _isLoading = true;
@@ -40,47 +26,120 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
   }
 
   Future<void> fetchFriends() async {
-    try {
-      final userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId == null) return;
+  try {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
 
-      final userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
-      final userSnapshot = await userDoc.get();
+    final userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
+    final userSnapshot = await userDoc.get();
 
-      final friendsMap = userSnapshot.data()?['friends'] as Map<String, dynamic>?;
+    final List<dynamic> rawFriends = userSnapshot.data()?['friends'] ?? [];
+    final List<String> friendsList = List<String>.from(rawFriends.whereType<String>());
 
-      if (friendsMap == null || friendsMap.isEmpty) {
-        if (!mounted) return;
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
+    
+    final uniqueFriends = friendsList.toSet().toList();
 
-      List<FriendsList> fetchedFriends = [];
-
-      for (final fid in friendsMap.keys) {
-        final fSnap = await FirebaseFirestore.instance.collection('users').doc(fid).get();
-        if (fSnap.exists && fSnap.data() != null) {
-          fetchedFriends.add(FriendsList.fromMap(fid, fSnap.data()!));
-        }
-      }
-
+    if (uniqueFriends.isEmpty) {
       if (!mounted) return;
-
       setState(() {
-        confirmedFriends = fetchedFriends;
         _isLoading = false;
       });
-    } catch (e) {
-      debugPrint('Error fetching friends: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      return;
+    }
+
+   List<FriendsList> fetchedFriends = [];
+
+for (final fid in uniqueFriends) {
+  final doc = await FirebaseFirestore.instance.collection('users').doc(fid).get();
+  if (doc.exists) {
+    final data = doc.data()!;
+    // Explicitly pull name here
+    final friendName = data['name'] ?? 'No Name';
+
+    fetchedFriends.add(FriendsList(
+      uid: fid,
+      username: data['username'] ?? '',
+      name: friendName,
+      streak: data['streak'] ?? 0,
+      lastActive: (data['lastActive'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    ));
+  }
+}
+
+    if (!mounted) return;
+
+    setState(() {
+      confirmedFriends = fetchedFriends;
+      _isLoading = false;
+    });
+
+    await checkAndConfirmFriends(); // Optional: ensure mutual confirmation logic
+  } catch (e) {
+    debugPrint('Error fetching friends: $e');
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
+}
+Future<String> fetchFriendName(String friendUserId) async {
+  final doc = await FirebaseFirestore.instance.collection('users').doc(friendUserId).get();
+  if (doc.exists) {
+    final data = doc.data();
+    return data?['name'] ?? 'Unknown';
+  }
+  return 'Unknown';
+}
+
+  Future<void> checkAndConfirmFriends() async {
+  final userId = FirebaseAuth.instance.currentUser?.uid;
+  if (userId == null) return;
+
+  final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+  final userSnap = await userRef.get();
+  final userData = userSnap.data();
+  if (userData == null) return;
+
+  List<String> incoming = List<String>.from(userData['incomingRequests'] ?? []);
+  List<String> outgoing = List<String>.from(userData['outgoingRequests'] ?? []);
+  List<String> friends = List<String>.from(userData['friends'] ?? []);
+
+  for (String requesterId in incoming.toList()) {
+    if (outgoing.contains(requesterId)) {
+      final requesterRef = FirebaseFirestore.instance.collection('users').doc(requesterId);
+      final requesterSnap = await requesterRef.get();
+      final requesterData = requesterSnap.data();
+      if (requesterData == null) continue;
+
+      List<String> requesterIncoming = List<String>.from(requesterData['incomingRequests'] ?? []);
+      List<String> requesterOutgoing = List<String>.from(requesterData['outgoingRequests'] ?? []);
+      List<String> requesterFriends = List<String>.from(requesterData['friends'] ?? []);
+
+      // Confirm friendship
+      friends.add(requesterId);
+      requesterFriends.add(userId);
+
+      incoming.remove(requesterId);
+      outgoing.remove(requesterId);
+      requesterIncoming.remove(userId);
+      requesterOutgoing.remove(userId);
+
+      await userRef.update({
+        'friends': friends,
+        'incomingRequests': incoming,
+        'outgoingRequests': outgoing,
+      });
+
+      await requesterRef.update({
+        'friends': requesterFriends,
+        'incomingRequests': requesterIncoming,
+        'outgoingRequests': requesterOutgoing,
+      });
+    }
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {

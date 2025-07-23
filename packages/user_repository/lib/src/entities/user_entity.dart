@@ -3,12 +3,14 @@ class MyUserEntity {
   int streak;
   List<String> incomingRequest;
   List<String> outgoingRequest;
+  List<String> friends;
   String username;
   String email;
   String name;
   bool isActive;
 
   MyUserEntity({
+    required this.friends,
     required this.incomingRequest,
     required this.streak,
     required this.outgoingRequest,
@@ -22,6 +24,7 @@ class MyUserEntity {
 
   Map<String, Object?> toDocument() {
     return {
+      'friends': friends,
       'userId': userId,
       'streak': streak,
       'username': username,
@@ -35,6 +38,7 @@ class MyUserEntity {
 
   static MyUserEntity fromDocument(Map<String, dynamic> doc) {
   return MyUserEntity(
+    friends: List<String>.from(doc['friends'] ?? []),
     streak: doc['streak'] is int ? doc['streak'] : int.tryParse(doc['streak']?.toString() ?? '') ?? 0,
     incomingRequest: List<String>.from(doc['incomingRequests'] ?? []),
     outgoingRequest: List<String>.from(doc['outgoingRequests'] ?? []),
@@ -52,6 +56,6 @@ class MyUserEntity {
 
   @override
   String toString() {
-    return 'MyUserEntity: $userId, $username, $email, $name, $isActive, $incomingRequest, $outgoingRequest, $streak';
+    return 'MyUserEntity: $userId, $username, $email, $name, $isActive, $incomingRequest, $outgoingRequest, $streak, $friends';
   }
 }

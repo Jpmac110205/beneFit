@@ -1,6 +1,7 @@
 import '../entities/entities.dart';
 
 class MyUser {
+  List<String> friends;
   int streak;
   List<String> incomingRequest;
   List<String> outgoingRequest;
@@ -11,6 +12,7 @@ class MyUser {
   bool isActive;
 
   MyUser({
+    required this.friends,
     required this.streak,
     required this.incomingRequest,
     required this.outgoingRequest,
@@ -22,6 +24,7 @@ class MyUser {
   });
 
   static final empty = MyUser(
+    friends: [],
     streak: 0,
     outgoingRequest: [],
     incomingRequest: [],
@@ -34,6 +37,7 @@ class MyUser {
 
   MyUserEntity toEntity() {
     return MyUserEntity(
+      friends: friends,
       streak: streak,
       outgoingRequest: outgoingRequest,
       incomingRequest: incomingRequest,
@@ -47,6 +51,7 @@ class MyUser {
 
   static MyUser fromEntity(MyUserEntity entity) {
     return MyUser(
+      friends: entity.friends,
       streak: entity.streak,
       outgoingRequest: entity.outgoingRequest,
       incomingRequest: entity.incomingRequest,
@@ -60,6 +65,6 @@ class MyUser {
 
   @override
   String toString() {
-    return 'MyUser: $userId, $username, $email, $name, $isActive, $incomingRequest, $outgoingRequest, $streak';
+    return 'MyUser: $userId, $username, $email, $name, $isActive, $incomingRequest, $outgoingRequest, $streak, $friends';
   }
 }
