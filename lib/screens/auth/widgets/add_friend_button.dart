@@ -23,8 +23,13 @@ class _AddFriendButtonState extends State<AddFriendButton> {
   }
 
   Future<void> _checkFriendStatus() async {
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUserId == null) return;
+    final currentUser = FirebaseAuth.instance.currentUser;
+if (currentUser == null) {
+  // User not signed in! Show login or error message.
+  print("User not authenticated.");
+  return;
+}
+final currentUserId = currentUser.uid;
 
     final usersRef = FirebaseFirestore.instance.collection('users');
 
@@ -62,32 +67,33 @@ class _AddFriendButtonState extends State<AddFriendButton> {
   }
 
   Future<void> _sendFriendRequest(String targetUserId) async {
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUserId == null) return;
+  final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+  if (currentUserId == null) return;
 
-    // Prevent sending if already friend or request sent
-    if (_isAlreadyFriend || _isRequestSent) return;
+  final usersRef = FirebaseFirestore.instance.collection('users');
 
-    final usersRef = FirebaseFirestore.instance.collection('users');
+  try {
+    // Update target user's incomingRequests
+    await usersRef.doc(targetUserId).update({
+      'incomingRequests': FieldValue.arrayUnion([currentUserId]),
+    });
 
-    try {
-      // Add current user to target user's incomingRequests
-      await usersRef.doc(targetUserId).update({
-        'incomingRequests': FieldValue.arrayUnion([currentUserId])
-      });
 
-      // Add target user to current user's outgoingRequests
-      await usersRef.doc(currentUserId).update({
-        'outgoingRequests': FieldValue.arrayUnion([targetUserId])
-      });
+    // Update current user's outgoingRequests
+    await usersRef.doc(currentUserId).update({
+      'outgoingRequests': FieldValue.arrayUnion([targetUserId]),
+    });
 
-      setState(() {
-        _isRequestSent = true;
-      });
-    } catch (e) {
-      print('Error sending friend request: $e');
-    }
+
+    setState(() {
+      _isRequestSent = true;
+    });
+  } catch (e) {
+    print('Error sending friend request: $e');
   }
+}
+
+
 
   @override
   Widget build(BuildContext context) {

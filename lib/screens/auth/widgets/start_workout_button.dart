@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:game/screens/auth/home/views/workout_tracker.dart';
-import 'package:game/screens/auth/widgets/start_workout_home.dart';
+import 'package:game/screens/auth/home/views/start_workout_home.dart';
 import 'package:game/screens/auth/widgets/exercise.dart';
 
 class StartWorkoutButton extends StatefulWidget {

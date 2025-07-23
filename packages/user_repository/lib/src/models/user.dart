@@ -1,10 +1,10 @@
-import '../entities/entities.dart';
+import 'package:user_repository/user_repository.dart';
 
 class MyUser {
   List<String> friends;
   int streak;
-  List<String> incomingRequest;
-  List<String> outgoingRequest;
+  List<String> incomingRequests;
+  List<String> outgoingRequests;
   String userId;
   String username;
   String email;
@@ -14,8 +14,8 @@ class MyUser {
   MyUser({
     required this.friends,
     required this.streak,
-    required this.incomingRequest,
-    required this.outgoingRequest,
+    required this.incomingRequests,
+    required this.outgoingRequests,
     required this.userId,
     required this.username,
     required this.email,
@@ -26,8 +26,8 @@ class MyUser {
   static final empty = MyUser(
     friends: [],
     streak: 0,
-    outgoingRequest: [],
-    incomingRequest: [],
+    outgoingRequests: [],
+    incomingRequests: [],
     userId: '',
     username: '',
     email: '',
@@ -39,8 +39,8 @@ class MyUser {
     return MyUserEntity(
       friends: friends,
       streak: streak,
-      outgoingRequest: outgoingRequest,
-      incomingRequest: incomingRequest,
+      outgoingRequests: outgoingRequests,
+      incomingRequests: incomingRequests,
       userId: userId,
       username: username,
       email: email,
@@ -53,8 +53,8 @@ class MyUser {
     return MyUser(
       friends: entity.friends,
       streak: entity.streak,
-      outgoingRequest: entity.outgoingRequest,
-      incomingRequest: entity.incomingRequest,
+      outgoingRequests: entity.outgoingRequests,
+      incomingRequests: entity.incomingRequests,
       userId: entity.userId,
       username: entity.username,
       email: entity.email,
@@ -65,6 +65,6 @@ class MyUser {
 
   @override
   String toString() {
-    return 'MyUser: $userId, $username, $email, $name, $isActive, $incomingRequest, $outgoingRequest, $streak, $friends';
+    return 'MyUser: $userId, $username, $email, $name, $isActive, $incomingRequests, $outgoingRequests, $streak, $friends';
   }
 }

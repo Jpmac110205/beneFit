@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:game/screens/auth/home/views/incoming_requests_view.dart';
 
 class IncomingRequest extends StatelessWidget {
   final VoidCallback? onPressed;
@@ -13,9 +14,12 @@ class IncomingRequest extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onPressed ?? () {
           // Default action if none provided
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Incoming request tapped')),
-          );
+          Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const IncomingRequestView(),
+                ),
+              );
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
