@@ -40,7 +40,6 @@ final currentUserId = currentUser.uid;
       if (!currentUserDoc.exists || !targetUserDoc.exists) return;
 
       final currentUserData = currentUserDoc.data()!;
-      final targetUserData = targetUserDoc.data()!;
 
       final List<dynamic> currentFriends = currentUserData['friends'] ?? [];
       final List<dynamic> outgoingRequests = currentUserData['outgoingRequests'] ?? [];
@@ -98,7 +97,7 @@ final currentUserId = currentUser.uid;
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return SizedBox(
+      return const SizedBox(
         width: 40,
         height: 40,
         child: CircularProgressIndicator(strokeWidth: 2),

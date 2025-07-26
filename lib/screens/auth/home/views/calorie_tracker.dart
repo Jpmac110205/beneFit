@@ -1,122 +1,114 @@
 import 'package:flutter/material.dart';
 import 'package:game/screens/auth/widgets/add_food_button.dart';
 import 'package:game/screens/auth/widgets/circle.dart';
+import 'package:game/screens/auth/widgets/food_log_model.dart';
 import 'package:game/screens/auth/widgets/space.dart';
-
-const int targetCalories = 2000;
-
-List<Food> foodList = [
-  Food(name: 'Chicken Breast', protein: 31, carbs: 0, fat: 3, fiber: 0, sugar: 0),
-  Food(name: 'Rice', protein: 4, carbs: 45, fat: 0, fiber: 1, sugar: 0),
-  Food(name: 'Broccoli', protein: 3, carbs: 6, fat: 0, fiber: 2, sugar: 1),
-  Food(name: 'Eggs', protein: 6, carbs: 1, fat: 5, fiber: 0, sugar: 0),
-  Food(name: 'Almonds', protein: 6, carbs: 6, fat: 14, fiber: 3, sugar: 1),
-];
+import 'package:provider/provider.dart';
 
 class CalorieTrackerScreen extends StatelessWidget {
   const CalorieTrackerScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Calculate totals before building the UI
-    int totalProtein = 0;
-    int totalCarbs = 0;
-    int totalFat = 0;
-    int totalFiber = 0;
-    int totalSugar = 0;
+    return Consumer<FoodLogModel>(
+      builder: (context, foodLogModel, _) {
+        final userFoodLog = foodLogModel.userFoodLog;
 
-    for (var food in foodList) {
-      totalProtein += food.protein;
-      totalCarbs += food.carbs;
-      totalFat += food.fat;
-      totalFiber += food.fiber;
-      totalSugar += food.sugar;
-    }
+        int targetCalories = 2000;
+        double totalProtein = 0;
+        double totalCarbs = 0;
+        double totalFat = 0;
 
-    int totalCalories = (totalProtein * 4) + (totalCarbs * 4) + (totalFat * 9);
+        for (var food in userFoodLog) {
+          totalProtein += food.protein;
+          totalCarbs += food.carbs;
+          totalFat += food.fat;
+        }
 
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const BigCircleScreenContent(),
-              const VerticalSpace(height: 30),
-              const AddFoodButton(),
-              const VerticalSpace(height: 30),
+        double totalCalories = (totalProtein * 4) + (totalCarbs * 4) + (totalFat * 9);
 
-              // Macros summary box
-              Container(
-                padding: const EdgeInsets.all(16),
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Colors.green, width: 2),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  'Protein: $totalProtein g\n'
-                  'Carbohydrates: $totalCarbs g\n'
-                  'Fat: $totalFat g\n'
-                  'Fiber: $totalFiber g\n'
-                  'Sugar: $totalSugar g\n\n'
-                  'Total Calories: $totalCalories\n'
-                  'Target Calories: $targetCalories',
-                  style: const TextStyle(fontSize: 20),
-                ),
-              ),
+        return Scaffold(
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (totalProtein >= 1 || totalCarbs >= 1 || totalFat >= 1)
+                     MacroPieChart(protein: totalProtein, carbs: totalCarbs, fat: totalFat),
+                  const VerticalSpace(height: 30),
+                  const AddFoodButton(),
+                  const VerticalSpace(height: 30),
 
-              const SizedBox(height: 20),
-
-              // Food list box
-              Container(
-                padding: const EdgeInsets.all(16),
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Colors.green, width: 2),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Food List',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  // Macros summary box
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.green, width: 2),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    const SizedBox(height: 10),
-                    ...foodList.map((food) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: RichText(
-                          text: TextSpan(
-                            style: const TextStyle(fontSize: 16, color: Colors.black),
-                            children: [
-                              TextSpan(
-                                text: '${food.name} → ',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              TextSpan(text: 'Protein: ${food.protein}g, '),
-                              TextSpan(text: 'Carbs: ${food.carbs}g, '),
-                              TextSpan(text: 'Fat: ${food.fat}g, '),
-                              TextSpan(text: 'Fiber: ${food.fiber}g, '),
-                              TextSpan(text: 'Sugar: ${food.sugar}g'),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ],
-                ),
-              ),
+                    child: Text(
+                      'Protein: ${double.parse(totalProtein.toStringAsFixed(1))} g\n'
+                      'Carbohydrates: ${double.parse(totalCarbs.toStringAsFixed(1))} g\n'
+                      'Fat: ${double.parse(totalFat.toStringAsFixed(1))} g\n'
+                      'Total Calories: ${double.parse(totalCalories.toStringAsFixed(1))}\n'
+                      'Target Calories: ${double.parse(targetCalories.toStringAsFixed(1))}',
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                  ),
 
-              const SizedBox(height: 100),
-            ],
+                  const SizedBox(height: 20),
+
+                  // Food list box
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.green, width: 2),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Food List',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 10),
+                        ...userFoodLog.map((food) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: RichText(
+                              text: TextSpan(
+                                style: const TextStyle(fontSize: 16, color: Colors.black),
+                                children: [
+                                  TextSpan(
+                                    text: '${food.name} → ',
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  TextSpan(text: 'Calories: ${double.parse(food.calories.toStringAsFixed(1))}'),
+                                  TextSpan(text: 'Protein: ${double.parse(food.protein.toStringAsFixed(1))}g, '),
+                                  TextSpan(text: 'Carbs: ${double.parse(food.carbs.toStringAsFixed(1))}g, '),
+                                  TextSpan(text: 'Fat: ${double.parse(food.fat.toStringAsFixed(1))}g, '),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 100),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      }, // <== This closing brace needed a semicolon
     );
   }
 }
@@ -143,22 +135,4 @@ class BigCircleScreenContent extends StatelessWidget {
       ),
     );
   }
-}
-
-class Food {
-  String name;
-  int protein;
-  int carbs;
-  int fat;
-  int fiber;
-  int sugar;
-
-  Food({
-    required this.name,
-    this.protein = 0,
-    this.carbs = 0,
-    this.fat = 0,
-    this.fiber = 0,
-    this.sugar = 0,
-  });
 }

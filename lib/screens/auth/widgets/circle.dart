@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+
 
 class CircularIconButton extends StatelessWidget {
   final IconData? icon;
@@ -50,5 +52,65 @@ class CircularIconButton extends StatelessWidget {
     );
   }
 }
+class MacroPieChart extends StatelessWidget {
+  final double protein;
+  final double carbs;
+  final double fat;
 
+  const MacroPieChart({
+    super.key,
+    required this.protein,
+    required this.carbs,
+    required this.fat,
+  });
 
+  @override
+  Widget build(BuildContext context) {
+    final total = protein + carbs + fat;
+
+    return AspectRatio(
+      aspectRatio: 1,
+      child: PieChart(
+        PieChartData(
+          sections: [
+            PieChartSectionData(
+              color: Colors.blue,
+              value: protein,
+              title: 'Protein\n${((protein / total) * 100).toStringAsFixed(1)}%',
+              radius: 110,
+              titleStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            PieChartSectionData(
+              color: Colors.orange,
+              value: carbs,
+              title: 'Carbs\n${((carbs / total) * 100).toStringAsFixed(1)}%',
+              radius: 110,
+              titleStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            PieChartSectionData(
+              color: Colors.green,
+              value: fat,
+              title: 'Fat\n${((fat / total) * 100).toStringAsFixed(1)}%',
+              radius: 110,
+              titleStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+          sectionsSpace: 2,
+          centerSpaceRadius: 40,
+        ),
+      ),
+    );
+  }
+}

@@ -122,9 +122,9 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
             : Column(
                 children: [
                   const SizedBox(height: 50), // vertical space before Row
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       SearchButton(),
                       SizedBox(width: 16), // horizontal space between buttons
                       IncomingRequest(),

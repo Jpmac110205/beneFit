@@ -12,12 +12,15 @@ dependencies:
   cupertino_icons: ^1.0.6
   font_awesome_flutter: ^10.7.0
   provider: ^6.1.0
+  http: ^0.13.6
 
   firebase_core: ^3.15.1  # updated from 2.16.0
 
   bloc: ^8.1.2
   flutter_bloc: ^8.1.3
   equatable: ^2.0.5
+  flutter_dotenv: ^5.1.0
+  fl_chart: ^0.64.0
 
   user_repository:
     path: packages/user_repository
@@ -38,6 +41,7 @@ flutter:
     - images/platinum.png
     - images/diamond.png
     - images/master.png
+    - assets/.env
     
 
 

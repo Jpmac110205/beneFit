@@ -24,7 +24,7 @@ class SearchManager with ChangeNotifier {
     final snapshot = await FirebaseFirestore.instance
         .collection('users')
         .where('username', isGreaterThanOrEqualTo: query)
-        .where('username', isLessThanOrEqualTo: query + '\uf8ff')
+        .where('username', isLessThanOrEqualTo: '$query\uf8ff')
         .limit(20)
         .get();
 

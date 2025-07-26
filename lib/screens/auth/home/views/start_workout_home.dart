@@ -173,7 +173,7 @@ class _StartWorkoutHomeState extends State<StartWorkoutHome> {
           children: [
             const SizedBox(height: 12),
             Text(
-              '${formatTime(secondsElapsed)}',
+              formatTime(secondsElapsed),
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
             const Divider(thickness: 1),

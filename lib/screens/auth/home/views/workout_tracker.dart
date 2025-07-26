@@ -331,7 +331,7 @@ class WorkoutStats {
 
   factory WorkoutStats.fromMap(Map<String, dynamic> map, String id) {
     if (map['name'] == null || map['description'] == null) {
-      throw FormatException('Missing required fields in workout map');
+      throw const FormatException('Missing required fields in workout map');
     }
 
     return WorkoutStats(

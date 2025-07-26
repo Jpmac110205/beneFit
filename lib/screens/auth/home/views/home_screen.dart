@@ -102,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedWorkout: selectedWorkout,
         onWorkoutSelected: setSelectedWorkout,
       ),
-      WorkoutTrackerScreen(),
+      const WorkoutTrackerScreen(),
       const CalorieTrackerScreen(),
     ];
 

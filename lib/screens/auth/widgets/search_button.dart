@@ -24,9 +24,9 @@ class SearchButton extends StatelessWidget {
             builder: (context) => const _SearchModalSheet(),
           );
         },
-        child: Row(
+        child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(
               Icons.search,
               color: Colors.white,
@@ -57,7 +57,7 @@ class _SearchModalSheet extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: SearchView(), // Your full-screen search view
+          child: const SearchView(), // Your full-screen search view
         );
       },
     );

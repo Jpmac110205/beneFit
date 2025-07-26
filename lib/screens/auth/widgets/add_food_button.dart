@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:game/screens/auth/home/views/add_food_search_screen.dart';
 
 class AddFoodButton extends StatefulWidget {
   const AddFoodButton({super.key});
@@ -15,14 +16,18 @@ class _AddFoodButtonState extends State<AddFoodButton> {
       _isTapped = true;
     });
 
-    // Wait for a short duration (e.g., 200 ms)
     await Future.delayed(const Duration(milliseconds: 200));
 
     setState(() {
       _isTapped = false;
     });
 
-    // TODO: You can add your actual logic here, like opening a new screen
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,  // Important for rounded corners!
+      isScrollControlled: true,  // To make it take up full height if needed
+      builder: (context) => const _AddFoodModalSheet(),
+    );
   }
 
   @override
@@ -47,6 +52,29 @@ class _AddFoodButtonState extends State<AddFoodButton> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AddFoodModalSheet extends StatelessWidget {
+  const _AddFoodModalSheet({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.95,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: AddFoodSearchScreen(),
+        );
+      },
     );
   }
 }
