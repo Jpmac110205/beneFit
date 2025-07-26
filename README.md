@@ -1,16 +1,11 @@
-# game
+# BeneFIT
 
-A new Flutter project.
+New Interactive Fitness App
 
-## Getting Started
+## Features
+Calorie Tracker, Workout Tracker, Friends System, Signup/Login System with Authorization, Ranked System
 
-This project is a starting point for a Flutter application.
+## User Experience Additions
 
-A few resources to get you started if this is your first Flutter project:
+Stats and charts to help visualize growth and progress for users
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
