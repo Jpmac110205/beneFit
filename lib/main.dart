@@ -3,39 +3,42 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:game/app.dart';
-import 'package:game/screens/auth/widgets/food_log_model.dart';
+import 'package:game/bloc/bloc/bloc/authentication_event.dart';
+import 'package:game/screens/auth/home/views/calorieTracker/food_log_model.dart';
+import 'package:game/screens/auth/home/views/theme_notifier.dart';
 import 'package:game/simple_bloc_observer.dart';
 import 'package:user_repository/user_repository.dart';
-import 'dart:io';
 import 'package:provider/provider.dart';
-import 'screens/auth/widgets/workoutProvider.dart'; 
-import 'screens/auth/widgets/search_manager.dart';
+import 'screens/auth/home/views/workoutTracker/workoutProvider.dart'; 
+import 'screens/auth/home/views/friends/search_manager.dart';
 
-
-void testLocalNetwork() async {
-  try {
-    final socket = await Socket.connect('192.168.1.1', 80).timeout(const Duration(seconds: 2));
-    socket.destroy();
-  } catch (e) {
-    print('Local network test failed: $e');
-  }
-}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: 'assets/.env');
   await Firebase.initializeApp();
   Bloc.observer = SimpleBlocObserver();
-  testLocalNetwork();
+
+  final themeNotifier = ThemeNotifier();
+  await themeNotifier.loadThemeFromFirebase();
+
+  final userRepository = FirebaseUserRepo();
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => WorkoutProvider()),
         ChangeNotifierProvider(create: (_) => SearchManager()),
-        ChangeNotifierProvider(create: (_) => FoodLogModel()), // <-- Add this provider here
+        ChangeNotifierProvider(create: (_) => FoodLogModel()),
+        ChangeNotifierProvider<ThemeNotifier>.value(value: themeNotifier),
       ],
-      child: MyApp(FirebaseUserRepo()),
+      child: RepositoryProvider.value(
+        value: userRepository,
+        child: BlocProvider(
+          create: (context) => AuthenticationBloc(userRepository: userRepository),
+          child: MyApp(userRepository),
+        ),
+      ),
     ),
   );
 }

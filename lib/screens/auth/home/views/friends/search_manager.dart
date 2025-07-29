@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:game/screens/auth/widgets/friends_list_model.dart';
+import 'package:game/screens/auth/home/views/friends/friends_list_model.dart';
 
 
 class SearchManager with ChangeNotifier {

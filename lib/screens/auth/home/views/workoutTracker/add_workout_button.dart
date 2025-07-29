@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:game/screens/auth/widgets/create_new_workout.dart';
-import 'package:game/screens/auth/home/views/workout_tracker.dart';
+import 'package:game/screens/auth/home/views/workoutTracker/create_new_workout.dart';
+import 'package:game/screens/auth/home/views/workoutTracker/workout_tracker.dart';
 
 class AddWorkoutButton extends StatefulWidget {
   final Function(WorkoutStats) onWorkoutAdded;
@@ -24,7 +24,6 @@ class _AddWorkoutButtonState extends State<AddWorkoutButton> {
       _isTapped = false;
     });
 
-    // Open CreateNewWorkout as a bottom sheet and wait for result
     final newWorkout = await showModalBottomSheet<WorkoutStats>(
       context: context,
       isScrollControlled: true,
@@ -41,21 +40,23 @@ class _AddWorkoutButtonState extends State<AddWorkoutButton> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return GestureDetector(
       onTap: _handleTap,
       child: Container(
         height: 80,
         width: 160,
         decoration: BoxDecoration(
-          color: _isTapped ? Colors.white : Colors.green,
-          border: Border.all(color: Colors.green, width: 2),
+          color: _isTapped ? colorScheme.onPrimary : colorScheme.primary,
+          border: Border.all(color: colorScheme.primary, width: 2),
           borderRadius: BorderRadius.circular(16),
         ),
         alignment: Alignment.center,
         child: Text(
           'Add Workout',
           style: TextStyle(
-            color: _isTapped ? Colors.green : Colors.white,
+            color: _isTapped ? colorScheme.primary : colorScheme.onPrimary,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),

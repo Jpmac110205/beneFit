@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:game/screens/auth/widgets/workout_ranked_calc.dart';
+import 'package:game/screens/auth/home/views/Ranked/workout_ranked_calc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,12 +19,14 @@ class RankedScreen extends StatefulWidget {
 }
 
 class _RankedScreenState extends State<RankedScreen> {
+  Timer? rankTimer;
   static const List<String> predefinedWorkoutNames = [
     'Deadlift',
     'Squat',
     'Bench Press',
     'Overhead Press',
     'Pull-Up',
+    
   ];
 
   final List<String> rankOrder = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master'];
@@ -55,6 +57,11 @@ class _RankedScreenState extends State<RankedScreen> {
     super.initState();
     _loadWorkoutsFromFirestore();
   }
+  @override
+void dispose() {
+  rankTimer?.cancel();
+  super.dispose();
+}
 
   // ✅ Fix 2: Now sets isLoading = false at the end
   void _loadWorkoutsFromFirestore() async {
@@ -104,20 +111,27 @@ class _RankedScreenState extends State<RankedScreen> {
   }
 
   void animateToFinalRank(String finalRank) {
-    if (isAnimating) return;
-    isAnimating = true;
-    rankAnimationIndex = 0;
+  if (isAnimating) return;
+  isAnimating = true;
+  rankAnimationIndex = 0;
 
-    Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      setState(() => currentDisplayRank = rankOrder[rankAnimationIndex]);
-      if (rankOrder[rankAnimationIndex] == finalRank) {
-        timer.cancel();
-        isAnimating = false;
-      } else {
-        rankAnimationIndex = (rankAnimationIndex + 1) % rankOrder.length;
-      }
-    });
-  }
+  rankTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+    if (!mounted) {
+      timer.cancel();
+      return;
+    }
+
+    setState(() => currentDisplayRank = rankOrder[rankAnimationIndex]);
+
+    if (rankOrder[rankAnimationIndex] == finalRank) {
+      timer.cancel();
+      isAnimating = false;
+    } else {
+      rankAnimationIndex = (rankAnimationIndex + 1) % rankOrder.length;
+    }
+  });
+}
+
 
   void _editWorkout(Ranked workout) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -223,6 +237,8 @@ class _RankedScreenState extends State<RankedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     if (isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -232,21 +248,24 @@ class _RankedScreenState extends State<RankedScreen> {
     final selectedWorkout = workouts.firstWhere((w) => w.workout == selectedWorkoutName);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F0F0),
+      appBar: AppBar(
+        title: const Text('Ranked Tracker', style: TextStyle(color: Colors.green)),
+        backgroundColor: colorScheme.onPrimary,
+        elevation: 0,
+      ),
+      backgroundColor: colorScheme.surface,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(vertical: 24),
           child: Column(
             children: [
-              const SizedBox(height: 40),
-              const Text('Ranked Tracker', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green)),
-              const SizedBox(height: 30),
+              const SizedBox(height: 60),
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 20),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Colors.green, width: 2),
+                  color: colorScheme.onPrimary,
+                  border: Border.all(color: colorScheme.primary, width: 2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -292,7 +311,7 @@ class _RankedScreenState extends State<RankedScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 20),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorScheme.onPrimary,
                   border: Border.all(color: Colors.green, width: 2),
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -307,7 +326,7 @@ class _RankedScreenState extends State<RankedScreen> {
                   }).toList(),
                 ),
               ),
-              const SizedBox(height: 100),
+              const SizedBox(height: 120),
             ],
           ),
         ),

@@ -1,13 +1,7 @@
-import 'package:game/screens/auth/home/views/workout_tracker.dart';
+import 'package:game/screens/auth/home/views/workoutTracker/workout_tracker.dart';
 import 'package:flutter/material.dart';
-import 'package:game/screens/auth/widgets/lift_stored.dart';
+import 'package:game/screens/auth/home/views/workoutTracker/lift_stored.dart';
 import 'exercise.dart';
-
-// Example list of exercises to search from
-
-
-// Data class for a set of an exercise
-
 
 class CreateNewWorkout extends StatefulWidget {
   const CreateNewWorkout({super.key});
@@ -33,7 +27,6 @@ class _CreateNewWorkoutState extends State<CreateNewWorkout> {
   }
 
   void _addExercise(String exerciseName) {
-    // Prevent duplicate exercises
     if (exercises.any((e) => e.name == exerciseName)) return;
 
     setState(() {
@@ -63,11 +56,16 @@ class _CreateNewWorkoutState extends State<CreateNewWorkout> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create New Workout'),
-        backgroundColor: Colors.white,
-
+        backgroundColor: colorScheme.surface,
+        iconTheme: IconThemeData(color: colorScheme.onSurface),
+        elevation: 0,
       ),
       body: SafeArea(
         child: Padding(
@@ -79,37 +77,43 @@ class _CreateNewWorkoutState extends State<CreateNewWorkout> {
                 // Workout name input
                 TextField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Workout Name',
+                    labelStyle: textTheme.bodyMedium,
                     border: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.green, width: 2),
+                      borderSide: BorderSide(color: colorScheme.primary, width: 2),
                     ),
                   ),
+                  style: textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 12),
 
                 // Workout description input
                 TextField(
                   controller: _descriptionController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Workout Description',
+                    labelStyle: textTheme.bodyMedium,
                     border: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.green, width: 2),
+                      borderSide: BorderSide(color: colorScheme.primary, width: 2),
                     ),
                   ),
+                  style: textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 20),
 
                 // Search bar for exercises
                 TextField(
                   controller: _searchController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Search Exercises',
-                    prefixIcon: Icon(Icons.search),
+                    prefixIcon: Icon(Icons.search, color: colorScheme.onSurface.withOpacity(0.7)),
+                    labelStyle: textTheme.bodyMedium,
                     border: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.green, width: 2),
+                      borderSide: BorderSide(color: colorScheme.primary, width: 2),
                     ),
                   ),
+                  style: textTheme.bodyLarge,
                   onChanged: _filterExercises,
                 ),
                 const SizedBox(height: 10),
@@ -126,13 +130,13 @@ class _CreateNewWorkoutState extends State<CreateNewWorkout> {
                         padding: const EdgeInsets.symmetric(horizontal: 6),
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.green, width: 2),
+                            backgroundColor: colorScheme.surface,
+                            side: BorderSide(color: colorScheme.primary, width: 2),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                          child: Text(exerciseName, style: const TextStyle(color: Colors.black)),
+                          child: Text(exerciseName, style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface)),
                           onPressed: () {
                             _addExercise(exerciseName);
                           },
@@ -154,9 +158,10 @@ class _CreateNewWorkoutState extends State<CreateNewWorkout> {
                     return Card(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: Colors.green, width: 2),
+                        side: BorderSide(color: colorScheme.primary, width: 2),
                       ),
                       margin: const EdgeInsets.symmetric(vertical: 8),
+                      color: colorScheme.surface,
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Column(
@@ -168,13 +173,10 @@ class _CreateNewWorkoutState extends State<CreateNewWorkout> {
                               children: [
                                 Text(
                                   exercise.name,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  icon: Icon(Icons.delete, color: colorScheme.error),
                                   onPressed: () => _removeExercise(exerciseIndex),
                                 ),
                               ],
@@ -195,10 +197,12 @@ class _CreateNewWorkoutState extends State<CreateNewWorkout> {
                                       child: TextFormField(
                                         initialValue: set.reps?.toString() ?? '',
                                         keyboardType: TextInputType.number,
-                                        decoration: const InputDecoration(
+                                        decoration: InputDecoration(
                                           labelText: 'Reps',
-                                          border: OutlineInputBorder(),
+                                          labelStyle: textTheme.bodyMedium,
+                                          border: const OutlineInputBorder(),
                                         ),
+                                        style: textTheme.bodyLarge,
                                         onChanged: (val) {
                                           final reps = int.tryParse(val) ?? set.reps;
                                           setState(() {
@@ -214,13 +218,15 @@ class _CreateNewWorkoutState extends State<CreateNewWorkout> {
                                       child: TextFormField(
                                         initialValue: set.weight?.toString() ?? '',
                                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                        decoration: const InputDecoration(
+                                        decoration: InputDecoration(
                                           labelText: 'Weight',
                                           suffixText: 'lbs',
+                                          labelStyle: textTheme.bodyMedium,
                                           border: OutlineInputBorder(
-                                            borderSide: BorderSide(color: Colors.green, width: 2),
+                                            borderSide: BorderSide(color: colorScheme.primary, width: 2),
                                           ),
                                         ),
+                                        style: textTheme.bodyLarge,
                                         onChanged: (val) {
                                           final weight = int.tryParse(val) ?? set.weight;
                                           setState(() {
@@ -234,13 +240,13 @@ class _CreateNewWorkoutState extends State<CreateNewWorkout> {
                                     // Remove set button (only if more than 1 set)
                                     if (exercise.sets.length > 1)
                                       IconButton(
-                                        icon: const Icon(Icons.delete, color: Colors.red),
+                                        icon: Icon(Icons.delete, color: colorScheme.error),
                                         onPressed: () => _removeSet(exerciseIndex, setIndex),
                                       ),
-                                      const SizedBox(height: 65),
+                                    const SizedBox(height: 65),
                                   ],
                                 );
-                              }, 
+                              },
                             ),
 
                             const SizedBox(height: 10),
@@ -249,8 +255,8 @@ class _CreateNewWorkoutState extends State<CreateNewWorkout> {
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton.icon(
-                                icon: const Icon(Icons.add),
-                                label: const Text('Add Set'),
+                                icon: Icon(Icons.add, color: colorScheme.primary),
+                                label: Text('Add Set', style: textTheme.bodyMedium?.copyWith(color: colorScheme.primary)),
                                 onPressed: () {
                                   _addSet(exerciseIndex);
                                 },
@@ -265,12 +271,15 @@ class _CreateNewWorkoutState extends State<CreateNewWorkout> {
 
                 const SizedBox(height: 40),
 
-                // Save button (you can implement saving logic here)
+                // Save button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.white, side: const BorderSide(color: Colors.green, width: 2)),
-                    child: const Text('Save Workout', style: TextStyle(color: Colors.black)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colorScheme.surface,
+                      side: BorderSide(color: colorScheme.primary, width: 2),
+                    ),
+                    child: Text('Save Workout', style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface)),
                     onPressed: () {
                       WorkoutStats workoutToReturn = WorkoutStats(
                         name: _nameController.text,
@@ -278,10 +287,7 @@ class _CreateNewWorkoutState extends State<CreateNewWorkout> {
                         timesCompleted: 0,
                         daysSinceLast: 0,
                         exercises: exercises,
-                        // you can expand WorkoutStats to hold the exercises and sets if needed
                       );
-
-                      // Return it when closing the bottom sheet
                       Navigator.of(context).pop(workoutToReturn);
                     },
                   ),

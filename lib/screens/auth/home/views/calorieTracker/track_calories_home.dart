@@ -22,27 +22,29 @@ class _TrackCaloriesHomeState extends State<TrackCaloriesHome> {
       _isTapped = false;
     });
 
-    // TODO: You can add your actual logic here, like opening a new screen
+    // TODO: Add your actual logic here, like opening a new screen
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return GestureDetector(
       onTap: _handleTap,
       child: Container(
         height: 60,
         width: 120,
         decoration: BoxDecoration(
-          color: _isTapped ? Colors.white : Colors.grey[200],
-          border: Border.all(color: Colors.green, width: 2),
+          color: _isTapped ? colorScheme.onPrimary : colorScheme.surfaceContainerHighest,
+          border: Border.all(color: colorScheme.primary, width: 2),
           borderRadius: BorderRadius.circular(16),
         ),
         alignment: Alignment.center,
-        child: const Text(
+        child: Text(
           'Track Calories',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 12,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: _isTapped ? colorScheme.primary : colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),
         ),

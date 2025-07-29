@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:game/screens/auth/home/views/search_view.dart';
+import 'package:game/screens/auth/home/views/friends/search_view.dart';
 
 class SearchButton extends StatelessWidget {
   const SearchButton({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return SizedBox(
       width: 150,
       height: 60,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.green,
+          backgroundColor: colorScheme.primary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -24,15 +27,18 @@ class SearchButton extends StatelessWidget {
             builder: (context) => const _SearchModalSheet(),
           );
         },
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.search,
-              color: Colors.white,
+              color: colorScheme.onPrimary,
             ),
-            SizedBox(width: 8),
-            Text('Search', style: TextStyle(color: Colors.white)),
+            const SizedBox(width: 8),
+            Text(
+              'Search',
+              style: TextStyle(color: colorScheme.onPrimary),
+            ),
           ],
         ),
       ),
@@ -46,6 +52,9 @@ class _SearchModalSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return DraggableScrollableSheet(
       initialChildSize: 0.95,
       minChildSize: 0.5,
@@ -53,9 +62,9 @@ class _SearchModalSheet extends StatelessWidget {
       expand: false,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: const SearchView(), // Your full-screen search view
         );

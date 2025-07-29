@@ -1,11 +1,9 @@
-
 import 'package:flutter/material.dart';
-import 'package:game/screens/auth/widgets/start_workout_button.dart';
-import 'package:game/screens/auth/widgets/add_workout_button.dart';
+import 'package:game/screens/auth/home/views/workoutTracker/start_workout_button.dart';
+import 'package:game/screens/auth/home/views/workoutTracker/add_workout_button.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:game/screens/auth/widgets/exercise.dart';
-
+import 'package:game/screens/auth/home/views/workoutTracker/exercise.dart';
 
 class WorkoutTrackerScreen extends StatefulWidget {
   const WorkoutTrackerScreen({super.key});
@@ -14,7 +12,8 @@ class WorkoutTrackerScreen extends StatefulWidget {
   State<WorkoutTrackerScreen> createState() => _WorkoutTrackerScreenState();
 }
 
-  String formatTime(int seconds) {
+// Utility to format seconds to MM:SS
+String formatTime(int seconds) {
   final minutes = seconds ~/ 60;
   final secs = seconds % 60;
   return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
@@ -23,6 +22,7 @@ class WorkoutTrackerScreen extends StatefulWidget {
 class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
   bool isLoading = false;
   List<WorkoutStats> workouts = [];
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -32,24 +32,10 @@ class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
     loadWorkouts();
   }
 
-
-  Future<void> updateWorkoutInFirebase(String workoutId, List<Exercise> updatedExercises) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    final workoutRef = _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('workouts')
-        .doc(workoutId);
-
-    await workoutRef.update({
-      'exercises': updatedExercises.map((e) => e.toMap()).toList(),
-    });
-  }
-
+  // Load workouts from Firestore
   Future<void> loadWorkouts() async {
     setState(() => isLoading = true);
+
     final user = _auth.currentUser;
     if (user == null) {
       setState(() => isLoading = false);
@@ -62,11 +48,10 @@ class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
         .collection('workouts')
         .get();
 
-    List<WorkoutStats> loadedWorkouts = [];
+    final List<WorkoutStats> loadedWorkouts = [];
 
-    for (var doc in snapshot.docs) {
+    for (final doc in snapshot.docs) {
       final data = doc.data();
-
       if (data['name'] != null && data['description'] != null) {
         try {
           loadedWorkouts.add(WorkoutStats.fromMap(data, doc.id));
@@ -84,7 +69,7 @@ class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
     });
   }
 
-
+  // Save or update a workout in Firestore
   Future<void> saveWorkout(WorkoutStats workout) async {
     final user = _auth.currentUser;
     if (user == null) return;
@@ -109,6 +94,7 @@ class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
     }
   }
 
+  // Delete a workout from Firestore
   Future<void> deleteWorkout(WorkoutStats workout) async {
     final user = _auth.currentUser;
     if (user == null || workout.id == null) return;
@@ -125,6 +111,7 @@ class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
     }
   }
 
+  // Add a new workout locally and save to Firestore
   void addToWorkout(WorkoutStats newWorkout) {
     setState(() {
       workouts.add(newWorkout);
@@ -132,21 +119,25 @@ class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
     saveWorkout(newWorkout);
   }
 
-  // When workout finishes, increment counters and save to Firebase
-void onWorkoutFinished(WorkoutStats updatedWorkout, int secondsElapsed) {
-  setState(() {
-    updatedWorkout.timesCompleted++;
-    updatedWorkout.daysSinceLast = 0;
-  });
-  saveWorkout(updatedWorkout);
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('Updated workout: ${updatedWorkout.name} \n Time Elapsed: ${formatTime(secondsElapsed)}')),
-  );
-}
+  // Update counters and save workout when finished
+  void onWorkoutFinished(WorkoutStats updatedWorkout, int secondsElapsed) {
+    setState(() {
+      updatedWorkout.timesCompleted++;
+      updatedWorkout.daysSinceLast = 0;
+    });
 
+    saveWorkout(updatedWorkout);
 
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Updated workout: ${updatedWorkout.name} \nTime Elapsed: ${formatTime(secondsElapsed)}',
+        ),
+      ),
+    );
+  }
 
-
+  // Show dialog to edit or delete workout
   void _editWorkout(int index) {
     final nameController = TextEditingController(text: workouts[index].name);
     final descriptionController =
@@ -179,7 +170,6 @@ void onWorkoutFinished(WorkoutStats updatedWorkout, int secondsElapsed) {
                 });
                 saveWorkout(workouts[index]);
                 Navigator.of(context).pop();
-                
               },
               child: const Text('Save'),
             ),
@@ -195,7 +185,10 @@ void onWorkoutFinished(WorkoutStats updatedWorkout, int secondsElapsed) {
                 });
                 Navigator.of(context).pop();
               },
-              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+              child: const Text(
+                'Delete',
+                style: TextStyle(color: Colors.red),
+              ),
             ),
           ],
         );
@@ -205,6 +198,8 @@ void onWorkoutFinished(WorkoutStats updatedWorkout, int secondsElapsed) {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     if (isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -212,30 +207,30 @@ void onWorkoutFinished(WorkoutStats updatedWorkout, int secondsElapsed) {
     }
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Workout Tracker',
+          style: TextStyle(color: Colors.green),
+        ),
+        backgroundColor: colorScheme.onPrimary,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.green),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Center(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 70),
-                const Text(
-                  'Workout Tracker',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 100),
                 if (workouts.isEmpty)
-                  const Text(
+                  Text(
                     'No workouts yet. Tap below to add one!',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: TextStyle(fontSize: 16, color: colorScheme.onSurface),
                   ),
                 ...workouts.asMap().entries.map((entry) {
-                  int index = entry.key;
-                  WorkoutStats workout = entry.value;
+                  final int index = entry.key;
+                  final WorkoutStats workout = entry.value;
 
                   return GestureDetector(
                     onTap: () => _editWorkout(index),
@@ -247,7 +242,7 @@ void onWorkoutFinished(WorkoutStats updatedWorkout, int secondsElapsed) {
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.green, width: 2),
                         borderRadius: BorderRadius.circular(12),
-                        color: Colors.white,
+                        color: colorScheme.onPrimary,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.1),
@@ -265,6 +260,7 @@ void onWorkoutFinished(WorkoutStats updatedWorkout, int secondsElapsed) {
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
+                                color: Colors.green,
                               ),
                             ),
                           ),
@@ -279,17 +275,23 @@ void onWorkoutFinished(WorkoutStats updatedWorkout, int secondsElapsed) {
                                 const SizedBox(height: 4),
                                 Text(
                                   'Times Completed: ${workout.timesCompleted}',
-                                  style: const TextStyle(fontSize: 12),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: colorScheme.onSurface
+                                  ),
                                 ),
                                 Text(
                                   'Days Since Last: ${workout.daysSinceLast}',
-                                  style: const TextStyle(fontSize: 12),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: colorScheme.onSurface,
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 StartWorkoutButton(
                                   workout: workout,
-                                  onWorkoutFinished: (secondsElapsed) => onWorkoutFinished(workout, secondsElapsed),
-
+                                  onWorkoutFinished: (secondsElapsed) =>
+                                      onWorkoutFinished(workout, secondsElapsed),
                                 ),
                               ],
                             ),
@@ -311,7 +313,7 @@ void onWorkoutFinished(WorkoutStats updatedWorkout, int secondsElapsed) {
   }
 }
 
-// Your model class remains the same:
+// WorkoutStats model class
 class WorkoutStats {
   String? id;
   String name;

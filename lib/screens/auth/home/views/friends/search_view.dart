@@ -1,31 +1,30 @@
-import 'package:game/screens/auth/widgets/add_friend_button.dart';
-import 'package:game/screens/auth/widgets/friends_list_model.dart';
+import 'package:game/screens/auth/home/views/friends/add_friend_button.dart';
+import 'package:game/screens/auth/home/views/friends/friends_list_model.dart';
 
-import '../../widgets/search_manager.dart';
+import 'search_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-
 class SearchView extends StatefulWidget {
   const SearchView({super.key});
-
 
   @override
   State<SearchView> createState() => _SearchViewState();
 }
 
 class _SearchViewState extends State<SearchView> {
-List<FriendsList> friend_selections = [];
+  List<FriendsList> friend_selections = [];
 
-  @override
   @override
   Widget build(BuildContext context) {
     final searchManager = Provider.of<SearchManager>(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     final isSearching = searchManager.isSearching;
     final displayList = isSearching ? searchManager.searchResults : friend_selections;
 
-    // Update streak and sort
     for (var friend in displayList) {
       friend.updateStreak();
     }
@@ -37,11 +36,15 @@ List<FriendsList> friend_selections = [];
 
     return Scaffold(
       appBar: AppBar(
-            title: const Text('Search Friends', style: TextStyle(color: Colors.green)),
-            backgroundColor: Colors.white,
-          ),
+        title: Text(
+          'Search Friends',
+          style: textTheme.titleLarge?.copyWith(color: colorScheme.primary),
+        ),
+        backgroundColor: colorScheme.surface,
+        iconTheme: IconThemeData(color: colorScheme.primary),
+        elevation: 0,
+      ),
       body: SafeArea(
-        
         child: Column(
           children: [
             const SizedBox(height: 50),
@@ -49,18 +52,27 @@ List<FriendsList> friend_selections = [];
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: TextField(
                 controller: searchManager.searchController,
+                style: textTheme.bodyLarge,
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon: Icon(Icons.search, color: colorScheme.onSurface.withOpacity(0.6)),
                   hintText: 'Search by username',
+                  hintStyle: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withOpacity(0.5)),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: colorScheme.primary),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: colorScheme.primary, width: 2),
                   ),
                   suffixIcon: searchManager.searchController.text.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear),
+                          icon: Icon(Icons.clear, color: colorScheme.onSurface.withOpacity(0.6)),
                           onPressed: searchManager.clearSearch,
                         )
                       : null,
+                  filled: true,
+                  fillColor: colorScheme.surface,
                 ),
                 onChanged: searchManager.searchUsers,
               ),
@@ -71,7 +83,7 @@ List<FriendsList> friend_selections = [];
                   ? Center(
                       child: Text(
                         isSearching ? 'No users found' : 'No friends to show',
-                        style: const TextStyle(fontSize: 16),
+                        style: textTheme.titleMedium,
                       ),
                     )
                   : ListView.builder(
@@ -83,12 +95,12 @@ List<FriendsList> friend_selections = [];
                           margin: const EdgeInsets.symmetric(vertical: 8),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.green, width: 2),
+                            border: Border.all(color: colorScheme.primary, width: 2),
                             borderRadius: BorderRadius.circular(12),
-                            color: Colors.white,
+                            color: colorScheme.onPrimary,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
+                                color: colorScheme.shadow.withOpacity(0.1),
                                 blurRadius: 6,
                                 offset: const Offset(0, 3),
                               ),
@@ -97,44 +109,37 @@ List<FriendsList> friend_selections = [];
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
+                              // Friend info column
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     friend.name,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '@${friend.username}', // <- Make sure this field exists in your FriendsList model
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey,
-                                    ),
+                                    '@${friend.username}',
+                                    style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface.withOpacity(0.7)),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     friend.isActive
                                         ? 'Active Now'
                                         : 'Last Active: ${DateTime.now().difference(friend.lastActive).inHours} hours ago',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
+                                    style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withOpacity(0.6)),
                                   ),
                                 ],
                               ),
 
+                              // Buttons and icons row
                               Row(
                                 children: [
                                   AddFriendButton(targetUserId: friend.uid),
                                   const SizedBox(width: 12),
                                   Icon(
                                     friend.isActive ? Icons.check_circle : Icons.cancel,
-                                    color: friend.isActive ? Colors.green : Colors.grey,
+                                    color: friend.isActive ? colorScheme.primary : colorScheme.onSurface.withOpacity(0.6),
                                   ),
                                   const SizedBox(width: 8),
                                   Icon(
@@ -149,17 +154,13 @@ List<FriendsList> friend_selections = [];
                                                     ? Colors.orange
                                                     : friend.streak == 1
                                                         ? Colors.yellow
-                                                        : Colors.grey,
+                                                        : colorScheme.onSurface.withOpacity(0.6),
                                     size: 20,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     '${friend.streak}',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
-                                    ),
+                                    style: textTheme.titleMedium?.copyWith(color: colorScheme.onSurface),
                                   ),
                                 ],
                               ),

@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:game/screens/auth/widgets/friends_list_model.dart';
-import 'package:game/screens/auth/widgets/incoming_request_button.dart';
-import 'package:game/screens/auth/widgets/search_button.dart';
+import 'package:game/screens/auth/home/views/friends/friends_list_model.dart';
+import 'package:game/screens/auth/home/views/friends/incoming_request_button.dart';
+import 'package:game/screens/auth/home/views/friends/search_button.dart';
 
 class FriendsListScreen extends StatefulWidget {
   const FriendsListScreen({super.key});
@@ -16,6 +16,7 @@ class FriendsListScreen extends StatefulWidget {
 
 class _FriendsListScreenState extends State<FriendsListScreen> {
   List<FriendsList> confirmedFriends = [];
+
   bool _isLoading = true;
   StreamSubscription<DocumentSnapshot>? _userSubscription;
 
@@ -100,10 +101,10 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Update streaks and sort friends by activity status
-    for (var friend in confirmedFriends) {
-      friend.updateStreak();
-    }
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    // Sort friends: active first
     confirmedFriends.sort((a, b) {
       if (a.isActive && !b.isActive) return -1;
       if (!a.isActive && b.isActive) return 1;
@@ -112,31 +113,36 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Friends List', style: TextStyle(color: Colors.green)),
-        backgroundColor: Colors.white,
+        title: Text(
+          'Friends List',
+          style: TextStyle(color: colorScheme.primary),
+          
+        ),
+        backgroundColor: colorScheme.onPrimary,
         elevation: 0,
+        iconTheme: IconThemeData(color: colorScheme.primary),
       ),
       body: SafeArea(
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
             : Column(
                 children: [
-                  const SizedBox(height: 50), // vertical space before Row
+                  const SizedBox(height: 50),
                   const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       SearchButton(),
-                      SizedBox(width: 16), // horizontal space between buttons
+                      SizedBox(width: 16),
                       IncomingRequest(),
                     ],
                   ),
                   const SizedBox(height: 50),
                   Expanded(
                     child: confirmedFriends.isEmpty
-                        ? const Center(
+                        ? Center(
                             child: Text(
                               'No friends found',
-                              style: TextStyle(fontSize: 16),
+                              style: theme.textTheme.bodyMedium,
                             ),
                           )
                         : ListView.builder(
@@ -148,12 +154,12 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                                 margin: const EdgeInsets.symmetric(vertical: 8),
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.green, width: 2),
+                                  border: Border.all(color: colorScheme.primary, width: 2),
                                   borderRadius: BorderRadius.circular(12),
-                                  color: Colors.white,
+                                  color: colorScheme.onPrimary,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
+                                      color: colorScheme.shadow.withOpacity(0.1),
                                       blurRadius: 6,
                                       offset: const Offset(0, 3),
                                     ),
@@ -162,22 +168,22 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
+                                    // Friend info column
                                     Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           friend.name,
-                                          style: const TextStyle(
-                                            fontSize: 18,
+                                          style: theme.textTheme.titleMedium?.copyWith(
                                             fontWeight: FontWeight.bold,
+                                            color: colorScheme.onSurface,
                                           ),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
                                           '@${friend.username}',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey,
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
                                           ),
                                         ),
                                         const SizedBox(height: 4),
@@ -185,9 +191,8 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                                           friend.isActive
                                               ? 'Active Now'
                                               : 'Last Active: ${DateTime.now().difference(friend.lastActive).inHours} hours ago',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey,
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            color: colorScheme.outline,
                                           ),
                                         ),
                                       ],
@@ -196,7 +201,7 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                                       children: [
                                         Icon(
                                           friend.isActive ? Icons.check_circle : Icons.cancel,
-                                          color: friend.isActive ? Colors.green : Colors.grey,
+                                          color: friend.isActive ? colorScheme.primary : colorScheme.outline,
                                         ),
                                         const SizedBox(width: 8),
                                         Icon(
@@ -211,16 +216,15 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                                                           ? Colors.orange
                                                           : friend.streak == 1
                                                               ? Colors.yellow
-                                                              : Colors.grey,
+                                                              : colorScheme.outline,
                                           size: 20,
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
                                           '${friend.streak}',
-                                          style: const TextStyle(
-                                            fontSize: 16,
+                                          style: theme.textTheme.titleMedium?.copyWith(
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.black,
+                                            color: colorScheme.onSurface,
                                           ),
                                         ),
                                       ],

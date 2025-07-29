@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:game/screens/auth/widgets/food_log_model.dart';
+import 'package:game/screens/auth/home/views/calorieTracker/food_log_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
@@ -18,13 +18,17 @@ class _AddFoodSearchScreenState extends State<AddFoodSearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<Food> _searchResults = [];
   bool _isLoading = false;
-  final Map<int, Food> _detailCache = {}; // fdcId → Food
 
   Future<void> _searchFoods(String query) async {
-    if (query.isEmpty) return;
-    setState(() => _isLoading = true);
+    if (query.isEmpty || !mounted) return;
 
-    final apiKey = dotenv.env['USDA_API_KEY']!;
+    setState(() => _isLoading = true);
+    final apiKey = dotenv.env['USDA_API_KEY'];
+    if (apiKey == null) {
+      debugPrint("Missing USDA API key");
+      return;
+    }
+
     final url =
         'https://api.nal.usda.gov/fdc/v1/foods/search?query=${Uri.encodeComponent(query)}&pageSize=25&api_key=$apiKey';
 
@@ -33,47 +37,26 @@ class _AddFoodSearchScreenState extends State<AddFoodSearchScreen> {
       if (res.statusCode != 200) throw Exception("Search failed");
       final List items = json.decode(res.body)['foods'];
 
-      // Filter out bad results
       final filteredItems = items.where((item) {
         final dataType = (item['dataType'] ?? '').toString().toLowerCase();
-        return dataType != 'survey (fndds)' && dataType != 'experimental' && dataType != 'branded';
+        return dataType != 'survey (fndds)' && dataType != 'experimental';
       });
 
-      // Build list from full detail fetch
-      List<Food> finalList = [];
+      final List<Food> results = filteredItems
+          .map((item) => Food.fromSearchJson(item))
+          .where((food) => food.calories > 0)
+          .toList();
 
-      for (var item in filteredItems) {
-        final fdcId = item['fdcId'];
-          if (fdcId == null) continue;
-
-          final detail = await _fetchFoodDetails(fdcId, apiKey);
-          if (detail == null || detail.calories == 0) continue;
-
-          finalList.add(detail);
-          _detailCache[fdcId] = detail;
-      }
-
-      setState(() => _searchResults = finalList);
+      if (!mounted) return;
+      setState(() => _searchResults = results);
     } catch (e) {
       debugPrint("Search error: $e");
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<Food?> _fetchFoodDetails(int fdcId, String apiKey) async {
-    final url = 'https://api.nal.usda.gov/fdc/v1/food/$fdcId?api_key=$apiKey';
-    try {
-      final res = await http.get(Uri.parse(url));
-      if (res.statusCode != 200) return null;
-      return Food.fromJson(json.decode(res.body));
-    } catch (e) {
-      debugPrint("Detail fetch failed: $e");
-      return null;
-      
-    }
-    
-  }
+
 
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
@@ -82,9 +65,9 @@ class _AddFoodSearchScreenState extends State<AddFoodSearchScreen> {
     });
   }
 
-
   void addToTracker(Food food) {
-    Provider.of<FoodLogModel>(context, listen: false).addFood(food);
+    final trackedFood = food.copyWith(timestamp: DateTime.now());
+    Provider.of<FoodLogModel>(context, listen: false).addFood(trackedFood);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${food.name} added to tracker!')),
     );
@@ -105,9 +88,11 @@ class _AddFoodSearchScreenState extends State<AddFoodSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Scaffold(
-      appBar:
-          AppBar(title: const Text('Search Food', style: TextStyle(color: Colors.green))),
+      appBar: AppBar(title: const Text('Search Food', style: TextStyle(color: Colors.green)),
+      backgroundColor: colorScheme.onPrimary,),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -116,16 +101,15 @@ class _AddFoodSearchScreenState extends State<AddFoodSearchScreen> {
               controller: _searchController,
               decoration: InputDecoration(
                 labelText: 'Search food...',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 prefixIcon: const Icon(Icons.search, color: Colors.green),
               ),
             ),
             const SizedBox(height: 20),
-            _isLoading
-                ? const CircularProgressIndicator()
-                : Expanded(
-                    child: ListView.builder(
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
                       itemCount: _searchResults.length,
                       itemBuilder: (context, index) {
                         final food = _searchResults[index];
@@ -136,6 +120,7 @@ class _AddFoodSearchScreenState extends State<AddFoodSearchScreen> {
                               ListTile(
                                 title: Text(food.name),
                                 subtitle: Text(
+                                  '${food.brandName != null ? '${food.brandName!} | ' : ''}'
                                   'Calories: ${food.calories.toStringAsFixed(1)} | '
                                   'Protein: ${food.protein.toStringAsFixed(1)}g | '
                                   'Carbs: ${food.carbs.toStringAsFixed(1)}g | '
@@ -172,7 +157,7 @@ class _AddFoodSearchScreenState extends State<AddFoodSearchScreen> {
                         );
                       },
                     ),
-                  ),
+            ),
           ],
         ),
       ),
@@ -201,85 +186,99 @@ class ServingSize {
   String toString() => '$label ($quantity)';
 }
 
-
 class Food {
+  final String? docId;
   final int? fdcId;
   final String name;
   final double baseCalories;
   final double baseProtein;
   final double baseCarbs;
   final double baseFat;
+  final DateTime timestamp;
   final List<ServingSize> servingSizes;
   ServingSize? selectedServing;
 
   Food({
-    required this.fdcId,
+    this.docId,
+    this.fdcId,
     required this.name,
     required this.baseCalories,
     required this.baseProtein,
     required this.baseCarbs,
     required this.baseFat,
+    required this.timestamp,
     required this.servingSizes,
     this.selectedServing,
   });
 
-double get multiplier => (selectedServing?.quantity ?? 100) / 100;
-  double get calories => baseCalories * multiplier;
-  double get protein => baseProtein * multiplier;
-  double get carbs => baseCarbs * multiplier;
-  double get fat => baseFat * multiplier;
+  double get calories => baseCalories;
+  double get protein => baseProtein;
+  double get carbs => baseCarbs;
+  double get fat => baseFat;
 
-  factory Food.fromJson(Map<String, dynamic> json) {
-  double getNutrientById(int id) {
-  final nutrients = json['foodNutrients'] ?? [];
-  try {
-    final nutrient = nutrients.firstWhere(
-      (n) => n['nutrient'] != null && n['nutrient']['id'] == id,
-      orElse: () => null,
-    );
-    if (nutrient != null && nutrient['amount'] != null) {
-      final val = nutrient['amount'];
-      if (val is num) {
-        return val.toDouble();
+  String? get brandName {
+    final parts = name.split('(');
+    if (parts.length > 1) return parts.last.replaceAll(')', '').trim();
+    return null;
+  }
+
+  factory Food.fromSearchJson(Map<String, dynamic> json) {
+    double getNutrientById(int id) {
+      final nutrients = (json['foodNutrients'] as List?) ?? [];
+      try {
+        final nutrient = nutrients.firstWhere(
+          (n) => n['nutrientId'] == id,
+          orElse: () => null,
+        );
+        if (nutrient != null && nutrient['value'] != null) {
+          final val = nutrient['value'];
+          if (val is num) return val.toDouble();
+        }
+        return 0.0;
+      } catch (_) {
+        return 0.0;
       }
     }
-    return 0.0;
-  } catch (e) {
-    debugPrint('Error extracting nutrient $id: $e');
-    return 0.0;
-  }
-}
 
+    final name = json['description'] ?? 'Unknown';
+    final brand = json['brandName'];
+    final fullName = brand != null ? '$name ($brand)' : name;
 
+    final servingSizes = <ServingSize>[
+      if (json['servingSize'] != null && json['servingSizeUnit'] != null)
+        ServingSize(json['servingSizeUnit'].toString(), (json['servingSize'] as num).toDouble())
+    ];
 
-  final double baseCalories = getNutrientById(1008);
-  final double baseProtein = getNutrientById(1003);
-  final double baseCarbs = getNutrientById(1005);
-  final double baseFat = getNutrientById(1004);
-
-  // Parse serving sizes
-  final List<ServingSize> servingSizes = [];
-  if (json['foodPortions'] != null) {
-    for (final portion in json['foodPortions']) {
-      final label = portion['modifier'] ?? portion['measureUnit']?['name'];
-      final gramWeight = portion['gramWeight'];
-      if (label != null && gramWeight is num && gramWeight > 0) {
-          servingSizes.add(
-            ServingSize(label.toString(), (gramWeight).toDouble()),
-          );
-        }
-    }
+    return Food(
+      timestamp: DateTime.now(),
+      fdcId: json['fdcId'] ?? 0,
+      name: fullName,
+      baseCalories: getNutrientById(1008),
+      baseProtein: getNutrientById(1003),
+      baseCarbs: getNutrientById(1005),
+      baseFat: getNutrientById(1004),
+      servingSizes: servingSizes,
+      selectedServing: servingSizes.isNotEmpty ? servingSizes.first : null,
+    );
   }
 
-  return Food(
-    fdcId: json['fdcId'],
-    name: json['description'] ?? 'Unknown',
-    baseCalories: baseCalories,
-    baseProtein: baseProtein,
-    baseCarbs: baseCarbs,
-    baseFat: baseFat,
-    servingSizes: servingSizes,
-    selectedServing: servingSizes.isNotEmpty ? servingSizes.first : null,
-  );
-}
+  factory Food.fromJson(Map<String, dynamic> json) {
+    // Optional: Add implementation for full detail response
+    throw UnimplementedError('fromJson not implemented');
+  }
+
+  Food copyWith({DateTime? timestamp}) {
+    return Food(
+      docId: docId,
+      fdcId: fdcId,
+      name: name,
+      baseCalories: baseCalories,
+      baseProtein: baseProtein,
+      baseCarbs: baseCarbs,
+      baseFat: baseFat,
+      timestamp: timestamp ?? this.timestamp,
+      servingSizes: servingSizes,
+      selectedServing: selectedServing,
+    );
+  }
 }

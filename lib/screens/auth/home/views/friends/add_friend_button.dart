@@ -24,12 +24,12 @@ class _AddFriendButtonState extends State<AddFriendButton> {
 
   Future<void> _checkFriendStatus() async {
     final currentUser = FirebaseAuth.instance.currentUser;
-if (currentUser == null) {
-  // User not signed in! Show login or error message.
-  print("User not authenticated.");
-  return;
-}
-final currentUserId = currentUser.uid;
+    if (currentUser == null) {
+      // User not signed in! Show login or error message.
+      print("User not authenticated.");
+      return;
+    }
+    final currentUserId = currentUser.uid;
 
     final usersRef = FirebaseFirestore.instance.collection('users');
 
@@ -52,6 +52,7 @@ final currentUserId = currentUser.uid;
       bool requestSent = outgoingRequests.contains(widget.targetUserId);
       bool requestReceived = incomingRequests.contains(widget.targetUserId);
 
+      if (!mounted) return;
       setState(() {
         _isAlreadyFriend = alreadyFriends;
         _isRequestSent = requestSent || requestReceived;
@@ -59,6 +60,7 @@ final currentUserId = currentUser.uid;
       });
     } catch (e) {
       print('Error checking friend status: $e');
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -66,36 +68,35 @@ final currentUserId = currentUser.uid;
   }
 
   Future<void> _sendFriendRequest(String targetUserId) async {
-  final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-  if (currentUserId == null) return;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) return;
 
-  final usersRef = FirebaseFirestore.instance.collection('users');
+    final usersRef = FirebaseFirestore.instance.collection('users');
 
-  try {
-    // Update target user's incomingRequests
-    await usersRef.doc(targetUserId).update({
-      'incomingRequests': FieldValue.arrayUnion([currentUserId]),
-    });
+    try {
+      // Update target user's incomingRequests
+      await usersRef.doc(targetUserId).update({
+        'incomingRequests': FieldValue.arrayUnion([currentUserId]),
+      });
 
+      // Update current user's outgoingRequests
+      await usersRef.doc(currentUserId).update({
+        'outgoingRequests': FieldValue.arrayUnion([targetUserId]),
+      });
 
-    // Update current user's outgoingRequests
-    await usersRef.doc(currentUserId).update({
-      'outgoingRequests': FieldValue.arrayUnion([targetUserId]),
-    });
-
-
-    setState(() {
-      _isRequestSent = true;
-    });
-  } catch (e) {
-    print('Error sending friend request: $e');
+      if (!mounted) return;
+      setState(() {
+        _isRequestSent = true;
+      });
+    } catch (e) {
+      print('Error sending friend request: $e');
+    }
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (_isLoading) {
       return const SizedBox(
         width: 40,
@@ -104,16 +105,30 @@ final currentUserId = currentUser.uid;
       );
     }
 
+    Color backgroundColor;
+    if (_isAlreadyFriend) {
+      backgroundColor = colorScheme.secondaryContainer;
+    } else if (_isRequestSent) {
+      backgroundColor = colorScheme.outlineVariant;
+    } else {
+      backgroundColor = colorScheme.primary;
+    }
+
+    IconData iconData;
+    if (_isAlreadyFriend) {
+      iconData = Icons.check;
+    } else if (_isRequestSent) {
+      iconData = Icons.close;
+    } else {
+      iconData = Icons.add;
+    }
+
     return SizedBox(
       width: 40,
       height: 40,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: _isAlreadyFriend
-              ? Colors.blueGrey // Different color if already friends
-              : _isRequestSent
-                  ? Colors.grey
-                  : Colors.green,
+          backgroundColor: backgroundColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -123,12 +138,8 @@ final currentUserId = currentUser.uid;
             ? null
             : () => _sendFriendRequest(widget.targetUserId),
         child: Icon(
-          _isAlreadyFriend
-              ? Icons.check // Show check icon if already friends
-              : _isRequestSent
-                  ? Icons.close
-                  : Icons.add,
-          color: Colors.white,
+          iconData,
+          color: colorScheme.onPrimary,
           size: 20,
         ),
       ),

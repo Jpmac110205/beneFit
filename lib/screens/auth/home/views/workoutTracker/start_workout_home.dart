@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:game/screens/auth/home/views/workout_tracker.dart';
-import 'package:game/screens/auth/widgets/exercise.dart';
+import 'package:game/screens/auth/home/views/workoutTracker/workout_tracker.dart';
+import 'package:game/screens/auth/home/views/workoutTracker/exercise.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 
 class StartWorkoutHome extends StatefulWidget {
   final WorkoutStats workout;
@@ -17,8 +20,10 @@ class _StartWorkoutHomeState extends State<StartWorkoutHome> {
   late List<List<TextEditingController>> repsControllers;
   late List<List<TextEditingController>> weightControllers;
 
-  late Timer timer;
-  int secondsElapsed = 0;
+  DateTime? startTime;
+Duration elapsed = Duration.zero;
+Timer? timer;
+
 
   @override
   void initState() {
@@ -26,7 +31,40 @@ class _StartWorkoutHomeState extends State<StartWorkoutHome> {
     initializeWorkoutData();
     startStopwatch();
   }
+  Future<void> updateSetCompletionStatus(int exerciseIndex, int setIndex, bool isComplete) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null || widget.workout.id == null) return;
 
+  final workoutDoc = FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('workouts')
+      .doc(widget.workout.id);
+
+  final docSnapshot = await workoutDoc.get();
+  if (!docSnapshot.exists) return;
+
+  final workoutData = docSnapshot.data()!;
+  final exercisesData = List<Map<String, dynamic>>.from(workoutData['exercises'] ?? []);
+
+  if (exerciseIndex >= exercisesData.length) return;
+
+  final exerciseData = Map<String, dynamic>.from(exercisesData[exerciseIndex]);
+  final setsData = List<Map<String, dynamic>>.from(exerciseData['sets'] ?? []);
+
+  if (setIndex >= setsData.length) return;
+
+  setsData[setIndex]['isComplete'] = isComplete;
+
+  exerciseData['sets'] = setsData;
+  exercisesData[exerciseIndex] = exerciseData;
+
+  workoutData['exercises'] = exercisesData;
+
+  await workoutDoc.set(workoutData);
+}
+
+  // Deep copy exercises & initialize text controllers
   void initializeWorkoutData() {
     exercises = widget.workout.exercises.map((e) {
       return Exercise(
@@ -55,22 +93,20 @@ class _StartWorkoutHomeState extends State<StartWorkoutHome> {
   }
 
   void startStopwatch() {
-    timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      setState(() {
-        secondsElapsed++;
-      });
+  startTime = DateTime.now();
+  timer = Timer.periodic(const Duration(seconds: 1), (_) {
+    setState(() {
+      if (startTime != null) {
+        elapsed = DateTime.now().difference(startTime!);
+      }
     });
-  }
-
-  void stopStopwatch() {
-    timer.cancel();
-  }
-
+  });
+}
 
 
   @override
   void dispose() {
-    stopStopwatch();
+    timer?.cancel();
     for (var list in repsControllers) {
       for (var controller in list) {
         controller.dispose();
@@ -93,23 +129,29 @@ class _StartWorkoutHomeState extends State<StartWorkoutHome> {
   }
 
   void removeSet(int exerciseIndex, int setIndex) {
+    if (exercises[exerciseIndex].sets.length <= 1) return;
+
     setState(() {
-      if (exercises[exerciseIndex].sets.length > 1) {
-        exercises[exerciseIndex].sets.removeAt(setIndex);
-        repsControllers[exerciseIndex][setIndex].dispose();
-        weightControllers[exerciseIndex][setIndex].dispose();
-        repsControllers[exerciseIndex].removeAt(setIndex);
-        weightControllers[exerciseIndex].removeAt(setIndex);
-      }
+      exercises[exerciseIndex].sets.removeAt(setIndex);
+      repsControllers[exerciseIndex][setIndex].dispose();
+      weightControllers[exerciseIndex][setIndex].dispose();
+      repsControllers[exerciseIndex].removeAt(setIndex);
+      weightControllers[exerciseIndex].removeAt(setIndex);
     });
   }
 
   void finishSet(int exerciseIndex, int setIndex) {
-    setState(() {
-      final set = exercises[exerciseIndex].sets[setIndex];
-      set.isComplete = !set.isComplete;
-    });
-  }
+  setState(() {
+    final set = exercises[exerciseIndex].sets[setIndex];
+    set.isComplete = !set.isComplete;
+  });
+
+  // Update Firebase
+  final isComplete = exercises[exerciseIndex].sets[setIndex].isComplete;
+  updateSetCompletionStatus(exerciseIndex, setIndex, isComplete);
+}
+
+
 
   void completeAllRemainingSets() {
     setState(() {
@@ -120,29 +162,34 @@ class _StartWorkoutHomeState extends State<StartWorkoutHome> {
       }
     });
   }
+
   void resetWorkout() {
-    setState(() {
-      secondsElapsed = 0;
-      for (var exercise in exercises) {
-        for (var set in exercise.sets) {
-          set.isComplete = false;
-        }
+  setState(() {
+    elapsed = Duration.zero;
+    startTime = null;
+    for (var exercise in exercises) {
+      for (var set in exercise.sets) {
+        set.isComplete = false;
       }
-      initializeWorkoutData();
-    });
-  }
+    }
+    initializeWorkoutData();
+  });
+}
 
   void finishWorkout({required bool finished}) {
-    stopStopwatch();
-    Navigator.of(context).pop({
-      'exercises': exercises,
-      'finished': finished,
-      'duration': secondsElapsed,
-    });
+  Navigator.of(context).pop({
+    'finished': finished,
+    'duration': elapsed.inSeconds,
+    'exercises': exercises, // <--- this was missing
+  });
+
+  if (finished) {
     resetWorkout();
   }
+}
 
   Widget finishButton() {
+    final theme = Theme.of(context);
     return FloatingActionButton.extended(
       onPressed: () {
         completeAllRemainingSets();
@@ -150,12 +197,27 @@ class _StartWorkoutHomeState extends State<StartWorkoutHome> {
       },
       icon: const Icon(Icons.done_all),
       label: const Text('Finish All'),
-      backgroundColor: Colors.green,
+      backgroundColor: theme.colorScheme.primary,
+      foregroundColor: theme.colorScheme.onPrimary,
     );
   }
 
+  // Format seconds as HH:MM:SS or MM:SS
+ String formatTime(Duration duration) {
+  String twoDigits(int n) => n.toString().padLeft(2, '0');
+  final minutes = twoDigits(duration.inMinutes.remainder(60));
+  final secs = twoDigits(duration.inSeconds.remainder(60));
+  if (duration.inHours > 0) {
+    final hours = twoDigits(duration.inHours);
+    return '$hours:$minutes:$secs';
+  }
+  return '$minutes:$secs';
+}
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return WillPopScope(
       onWillPop: () async {
         finishWorkout(finished: false);
@@ -165,16 +227,23 @@ class _StartWorkoutHomeState extends State<StartWorkoutHome> {
         appBar: AppBar(
           title: Text(
             widget.workout.name,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 24, color: Colors.green),
           ),
-          backgroundColor: Colors.white,
+          backgroundColor: colorScheme.onPrimary,
+          iconTheme: IconThemeData(color: theme.colorScheme.primary),
+          titleTextStyle: TextStyle(color: theme.colorScheme.onSurface),
+          elevation: 1,
         ),
         body: Column(
           children: [
             const SizedBox(height: 12),
             Text(
-              formatTime(secondsElapsed),
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+              formatTime(elapsed),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const Divider(thickness: 1),
             Expanded(
@@ -185,6 +254,10 @@ class _StartWorkoutHomeState extends State<StartWorkoutHome> {
                   final exercise = exercises[exerciseIndex];
                   return Card(
                     margin: const EdgeInsets.symmetric(vertical: 8.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: theme.colorScheme.primary, width: 2),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
@@ -192,9 +265,10 @@ class _StartWorkoutHomeState extends State<StartWorkoutHome> {
                         children: [
                           Text(
                             exercise.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 10),
@@ -204,14 +278,15 @@ class _StartWorkoutHomeState extends State<StartWorkoutHome> {
                             itemCount: exercise.sets.length,
                             itemBuilder: (context, setIndex) {
                               final set = exercise.sets[setIndex];
-                              final repsController =
-                                  repsControllers[exerciseIndex][setIndex];
-                              final weightController =
-                                  weightControllers[exerciseIndex][setIndex];
+                              final repsController = repsControllers[exerciseIndex][setIndex];
+                              final weightController = weightControllers[exerciseIndex][setIndex];
+
+                              final fillColor = set.isComplete
+                                  ? theme.colorScheme.secondaryContainer
+                                  : null;
 
                               return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 4.0),
+                                padding: const EdgeInsets.symmetric(vertical: 4.0),
                                 child: Row(
                                   children: [
                                     Expanded(
@@ -220,18 +295,13 @@ class _StartWorkoutHomeState extends State<StartWorkoutHome> {
                                         keyboardType: TextInputType.number,
                                         decoration: InputDecoration(
                                           labelText: 'Reps',
-                                          border:
-                                              const OutlineInputBorder(),
-                                          fillColor: set.isComplete
-                                              ? Colors.green[100]
-                                              : null,
+                                          border: const OutlineInputBorder(),
                                           filled: set.isComplete,
+                                          fillColor: fillColor,
                                         ),
                                         onChanged: (val) {
                                           setState(() {
-                                            set.reps = val.isEmpty
-                                                ? null
-                                                : int.tryParse(val);
+                                            set.reps = val.isEmpty ? null : int.tryParse(val);
                                           });
                                         },
                                       ),
@@ -240,24 +310,17 @@ class _StartWorkoutHomeState extends State<StartWorkoutHome> {
                                     Expanded(
                                       child: TextFormField(
                                         controller: weightController,
-                                        keyboardType:
-                                            const TextInputType.numberWithOptions(
-                                                decimal: true),
+                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                         decoration: InputDecoration(
                                           labelText: 'Weight',
                                           suffixText: 'lbs',
-                                          border:
-                                              const OutlineInputBorder(),
-                                          fillColor: set.isComplete
-                                              ? Colors.green[100]
-                                              : null,
+                                          border: const OutlineInputBorder(),
                                           filled: set.isComplete,
+                                          fillColor: fillColor,
                                         ),
                                         onChanged: (val) {
                                           setState(() {
-                                            set.weight = val.isEmpty
-                                                ? null
-                                                : int.tryParse(val);
+                                            set.weight = val.isEmpty ? null : int.tryParse(val);
                                           });
                                         },
                                       ),
@@ -267,18 +330,17 @@ class _StartWorkoutHomeState extends State<StartWorkoutHome> {
                                       icon: Icon(
                                         Icons.check,
                                         color: set.isComplete
-                                            ? Colors.green
-                                            : Colors.grey,
+                                            ? theme.colorScheme.primary 
+                                            : theme.colorScheme.onSurfaceVariant,
                                       ),
-                                      onPressed: () => finishSet(
-                                          exerciseIndex, setIndex),
+                                      onPressed: () => finishSet(exerciseIndex, setIndex),
+                                      tooltip: set.isComplete ? 'Mark as incomplete' : 'Mark as complete',
                                     ),
                                     if (exercise.sets.length > 1)
                                       IconButton(
-                                        icon: const Icon(Icons.delete,
-                                            color: Colors.red),
-                                        onPressed: () => removeSet(
-                                            exerciseIndex, setIndex),
+                                        icon: Icon(Icons.delete, color: theme.colorScheme.error),
+                                        onPressed: () => removeSet(exerciseIndex, setIndex),
+                                        tooltip: 'Remove set',
                                       ),
                                   ],
                                 ),
@@ -303,7 +365,10 @@ class _StartWorkoutHomeState extends State<StartWorkoutHome> {
             ),
           ],
         ),
-        floatingActionButton: finishButton(),
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(bottom: 16.0, right: 16.0),
+          child: finishButton(),
+        ),
       ),
     );
   }

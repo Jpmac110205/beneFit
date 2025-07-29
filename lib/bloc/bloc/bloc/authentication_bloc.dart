@@ -1,9 +1,9 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:game/bloc/bloc/bloc/authentication_event.dart';
 import 'package:user_repository/user_repository.dart';
 import 'dart:async';
 
-part 'authentication_event.dart';
 part 'authentication_state.dart';
 
 class AuthenticationBloc extends Bloc<AuthenticationEvent, AuthenticationState> {
@@ -13,7 +13,7 @@ class AuthenticationBloc extends Bloc<AuthenticationEvent, AuthenticationState> 
   AuthenticationBloc({
     required this.userRepository,
   }) : super(const AuthenticationState.unknown()) {
-    // ✅ Listen ONCE — no nested listen!
+    // Listen for user changes from the repository
     _userSubscription = userRepository.user.listen(
       (user) => add(AuthenticationUserChanged(user ?? MyUser.empty)),
     );
@@ -25,6 +25,17 @@ class AuthenticationBloc extends Bloc<AuthenticationEvent, AuthenticationState> 
         emit(const AuthenticationState.unauthenticated());
       }
     });
+
+    // Register the logout event handler!
+    on<AuthenticationLogoutRequested>(_onLogoutRequested);
+  }
+
+  Future<void> _onLogoutRequested(
+    AuthenticationLogoutRequested event,
+    Emitter<AuthenticationState> emit,
+  ) async {
+    await userRepository.logout();
+    // No need to emit here — state changes come from the user stream
   }
 
   @override
