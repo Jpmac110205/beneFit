@@ -95,7 +95,7 @@ class _IncomingRequestViewState extends State<IncomingRequestView> {
           'Incoming Requests',
           style: textTheme.titleLarge?.copyWith(color: colorScheme.primary),
         ),
-        backgroundColor: colorScheme.surface,
+        backgroundColor: colorScheme.onPrimary,
         iconTheme: IconThemeData(color: colorScheme.primary),
         elevation: 1,
       ),

@@ -48,7 +48,7 @@ class _StartWorkoutButtonState extends State<StartWorkoutButton> {
       updatedExercises = rawExercises.map((e) {
         if (e is Exercise) return e;
         if (e is Map<String, dynamic>) return Exercise.fromMap(e);
-        throw FormatException('Invalid exercise format');
+        throw const FormatException('Invalid exercise format');
       }).toList();
     }
 

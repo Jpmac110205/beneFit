@@ -79,13 +79,13 @@ class _SettingsPageState extends State<SettingsPage> {
                     Text('Dark Mode', style: theme.textTheme.bodyMedium),
                     Switch(
                       value: themeNotifier.isDarkMode,
-                      activeColor: theme.colorScheme.primary,
+                      activeColor: theme.colorScheme.primary, // Use activeColor instead
                       inactiveThumbColor: theme.disabledColor,
                       onChanged: (value) {
-                        themeNotifier.setTheme(value); // Update local app state
-                        _updateDarkModePreference(value); // Sync with Firebase
+                        themeNotifier.setTheme(value);
+                        _updateDarkModePreference(value);
                       },
-                    ),
+                    )
                   ],
                 ),
                 const SizedBox(height: 25),

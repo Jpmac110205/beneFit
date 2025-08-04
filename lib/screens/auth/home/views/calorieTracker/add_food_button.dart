@@ -24,8 +24,8 @@ class _AddFoodButtonState extends State<AddFoodButton> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent, // Important for rounded corners!
-      isScrollControlled: true, // To make it take up full height if needed
+      backgroundColor: Colors.transparent, 
+      isScrollControlled: true, 
       builder: (context) => const _AddFoodModalSheet(),
     );
   }
@@ -34,12 +34,11 @@ class _AddFoodButtonState extends State<AddFoodButton> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    // Use theme colors instead of hardcoded green/white
     final activeBackgroundColor = colorScheme.primary;
     final activeBorderColor = colorScheme.primary;
     final activeTextColor = colorScheme.onPrimary;
 
-    final inactiveBackgroundColor = colorScheme.onPrimary; // usually white or light bg
+    final inactiveBackgroundColor = colorScheme.onPrimary; 
     final inactiveTextColor = colorScheme.primary;
 
     return GestureDetector(

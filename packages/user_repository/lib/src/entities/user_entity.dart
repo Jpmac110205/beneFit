@@ -8,6 +8,7 @@ class MyUserEntity {
   String email;
   String name;
   bool isActive;
+  int totalExp;
 
   MyUserEntity({
     required this.friends,
@@ -18,7 +19,8 @@ class MyUserEntity {
     required this.username,
     required this.email,
     required this.name,
-    required this.isActive, 
+    required this.isActive,
+    required this.totalExp, 
   });
 
 
@@ -33,6 +35,7 @@ class MyUserEntity {
       'isActive': isActive,
       'incomingRequests': incomingRequests,
       'outgoingRequests' : outgoingRequests,
+      'totalExp' : totalExp,
     };
   }
 
@@ -47,6 +50,7 @@ class MyUserEntity {
     email: doc['email']?.toString() ?? '',
     name: doc['name']?.toString() ?? '',
     isActive: doc['isActive'] is bool ? doc['isActive'] : false,
+    totalExp: doc['totalExp'] is int ? doc['totalExp'] : int.tryParse(doc['totalExp']?.toString() ?? '') ?? 0,
   );
 }
 

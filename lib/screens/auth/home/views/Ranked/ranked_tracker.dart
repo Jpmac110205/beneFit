@@ -31,7 +31,54 @@ class _RankedScreenState extends State<RankedScreen> {
 
   final List<String> rankOrder = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master'];
 
-  // ✅ Fix 1: Initialize using predefined workouts
+ Map<String, int> calculateRankTotals(List<Ranked> workouts) {
+  // Only track Platinum and above
+  Map<String, int> totals = {
+    'Platinum': 0,
+    'Diamond': 0,
+    'Master': 0,
+  };
+
+  for (var workout in workouts) {
+    final rank = workout.ranked;
+
+    if (rank == 'Master') {
+      totals['Master'] = totals['Master']! + 1;
+      totals['Diamond'] = totals['Diamond']! + 1;
+      totals['Platinum'] = totals['Platinum']! + 1;
+    } else if (rank == 'Diamond') {
+      totals['Diamond'] = totals['Diamond']! + 1;
+      totals['Platinum'] = totals['Platinum']! + 1;
+    } else if (rank == 'Platinum') {
+      totals['Platinum'] = totals['Platinum']! + 1;
+    }
+  }
+
+  return totals;
+}
+
+Future<void> saveRankTotals(Map<String, int> totals) async {
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  if (uid == null) return;
+
+  final docRef = FirebaseFirestore.instance
+      .collection('users')
+      .doc(uid)
+      .collection('ranked')
+      .doc('rankedTotals');
+
+  await docRef.set({
+    'totals': totals,
+    'lastUpdated': DateTime.now().toIso8601String(),
+  }, SetOptions(merge: true));
+}
+Future<void> updateRankTotals() async {
+  final totals = calculateRankTotals(workouts);
+  await saveRankTotals(totals);
+}
+
+
+
   List<Ranked> workouts = _initialWorkouts();
 
   static List<Ranked> _initialWorkouts() {
@@ -63,39 +110,59 @@ void dispose() {
   super.dispose();
 }
 
+
+
   // ✅ Fix 2: Now sets isLoading = false at the end
   void _loadWorkoutsFromFirestore() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  if (uid == null) return;
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('ranked')
-        .get();
+  final snapshot = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(uid)
+      .collection('ranked')
+      .get();
 
-    final firestoreMap = {
-      for (var doc in snapshot.docs)
-        doc.id: Ranked(
-          workout: doc.id,
-          liftWeight: doc['liftWeight'] ?? 0,
-          reps: doc['reps'] ?? 0,
-          bodyWeight: doc['bodyWeight'] ?? 0,
-        )
-    };
+  final firestoreMap = {
+    for (var doc in snapshot.docs)
+      doc.id: Ranked(
+        workout: doc.id,
+        liftWeight: doc.data()['liftWeight'] ?? 0,
+        reps: doc.data()['reps'] ?? 0,
+        bodyWeight: doc.data()['bodyWeight'] ?? 0,
+        ranked: doc.data()['ranked'] ?? '',
+        percentage: doc.data()['percentage']?.toString() ?? '',
+      )
+  };
 
-    List<Ranked> merged = predefinedWorkoutNames.map((name) {
-      return firestoreMap[name] ??
-          Ranked(workout: name, liftWeight: 0, reps: 0, bodyWeight: 180);
-    }).toList();
+  List<Ranked> merged = predefinedWorkoutNames.map((name) {
+    return firestoreMap[name] ??
+        Ranked(workout: name, liftWeight: 0, reps: 0, bodyWeight: 180);
+  }).toList();
 
-    setState(() {
-      workouts = merged;
-      _evaluateAllWorkouts();
-      isLoading = false; 
-    });
-    animateToFinalRank(workouts.firstWhere((w) => w.workout == selectedWorkoutName).ranked);
+  // Evaluate ranks first
+  for (var workout in merged) {
+    final result = evaluateRank(
+      liftWeight: workout.liftWeight,
+      reps: workout.reps,
+      bodyweight: workout.bodyWeight.toDouble(),
+      exercise: workout.workout,
+    );
+    workout.ranked = result['rank'];
+    workout.percentage = result['percentile'].toString();
   }
+  if (!mounted) return;
+  setState(() {
+    workouts = merged;
+    isLoading = false;
+  });
+
+  await updateRankTotals();
+
+  final selectedWorkout = merged.firstWhere((w) => w.workout == selectedWorkoutName);
+  animateToFinalRank(selectedWorkout.ranked);
+}
+
 
   void _evaluateAllWorkouts() {
     for (var workout in workouts) {
@@ -111,7 +178,7 @@ void dispose() {
   }
 
   void animateToFinalRank(String finalRank) {
-  if (isAnimating) return;
+  if (isAnimating || currentDisplayRank == finalRank) return; 
   isAnimating = true;
   rankAnimationIndex = 0;
 
@@ -120,7 +187,7 @@ void dispose() {
       timer.cancel();
       return;
     }
-
+    if (!mounted) return;
     setState(() => currentDisplayRank = rankOrder[rankAnimationIndex]);
 
     if (rankOrder[rankAnimationIndex] == finalRank) {
@@ -154,6 +221,7 @@ void dispose() {
         actions: [
           TextButton(
             onPressed: () async {
+              if (!mounted) return;
               setState(() {
                 workout.bodyWeight = int.tryParse(bodyController.text) ?? 0;
                 workout.liftWeight = int.tryParse(liftController.text) ?? 0;
@@ -179,9 +247,12 @@ void dispose() {
                   'liftWeight': workout.liftWeight,
                   'reps': workout.reps,
                   'bodyWeight': workout.bodyWeight,
+                  'ranked': workout.ranked,
+                  'percentage': workout.percentage,
                 });
-              }
 
+              }
+              await updateRankTotals();
               Navigator.of(context).pop();
 
               // ✅ Trigger the animation after saving
@@ -193,7 +264,6 @@ void dispose() {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              animateToFinalRank(workout.ranked);
             },
             child: const Text('Cancel'),
           ),

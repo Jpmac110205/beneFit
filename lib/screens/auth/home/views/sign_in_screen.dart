@@ -23,6 +23,8 @@ class _SignInScreenState extends State<SignInScreen> {
 	
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return BlocListener<SignInBloc, SignInState>(
 			listener: (context, state) {
 				if(state is SignInSuccess) {
@@ -48,11 +50,12 @@ class _SignInScreenState extends State<SignInScreen> {
             SizedBox(
               width: MediaQuery.of(context).size.width * 0.9,
               child: MyTextField(
-                controller: emailController,
+                controller: emailController, 
+                style: TextStyle(color: Colors.black),
                 hintText: 'Email',
                 obscureText: false,
                 keyboardType: TextInputType.emailAddress,
-                prefixIcon: const Icon(CupertinoIcons.mail_solid),
+                prefixIcon: const Icon(CupertinoIcons.mail_solid, color: Colors.black),
                 errorMsg: _errorMsg,
                 validator: (val) {
                   if (val!.isEmpty) {
@@ -69,10 +72,11 @@ class _SignInScreenState extends State<SignInScreen> {
               width: MediaQuery.of(context).size.width * 0.9,
               child: MyTextField(
                 controller: passwordController,
+                style: TextStyle(color: Colors.black),
                 hintText: 'Password',
                 obscureText: obscurePassword,
                 keyboardType: TextInputType.visiblePassword,
-                prefixIcon: const Icon(CupertinoIcons.lock_fill),
+                prefixIcon: const Icon(CupertinoIcons.lock_fill, color: Colors.black),
                 errorMsg: _errorMsg,
                 validator: (val) {
                   if (val!.isEmpty) {
@@ -93,7 +97,9 @@ class _SignInScreenState extends State<SignInScreen> {
                       }
                     });
                   },
-                  icon: Icon(iconPassword),
+                  icon: Icon(iconPassword,
+                  color: Colors.black
+                  ),
                 ),
               ),
             ),
@@ -113,18 +119,18 @@ class _SignInScreenState extends State<SignInScreen> {
                     style: TextButton.styleFrom(
                       elevation: 3.0,
                       backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
+                      foregroundColor: colorScheme.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(60)
                       )
                     ),
-                    child: const Padding(
+                    child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 25, vertical: 5),
                       child: Text(
                         'Sign In',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.white,
+                          color: colorScheme.onPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.w600
                         ),

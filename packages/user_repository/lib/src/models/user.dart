@@ -10,6 +10,7 @@ class MyUser {
   String email;
   String name;
   bool isActive;
+  int totalExp;
 
   MyUser({
     required this.friends,
@@ -21,6 +22,7 @@ class MyUser {
     required this.email,
     required this.name,
     required this.isActive,
+    required this.totalExp,
   });
 
   static final empty = MyUser(
@@ -33,6 +35,7 @@ class MyUser {
     email: '',
     name: '',
     isActive: false,
+    totalExp: 0,
   );
 
   MyUserEntity toEntity() {
@@ -46,6 +49,7 @@ class MyUser {
       email: email,
       name: name,
       isActive: isActive,
+      totalExp: totalExp,
     );
   }
 
@@ -60,11 +64,12 @@ class MyUser {
       email: entity.email,
       name: entity.name,
       isActive: entity.isActive,
+      totalExp: entity.totalExp,
     );
   }
 
   @override
   String toString() {
-    return 'MyUser: $userId, $username, $email, $name, $isActive, $incomingRequests, $outgoingRequests, $streak, $friends';
+    return 'MyUser: $userId, $username, $email, $name, $isActive, $incomingRequests, $outgoingRequests, $streak, $friends, $totalExp';
   }
 }

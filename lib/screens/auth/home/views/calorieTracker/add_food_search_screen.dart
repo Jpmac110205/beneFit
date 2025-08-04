@@ -263,7 +263,6 @@ class Food {
   }
 
   factory Food.fromJson(Map<String, dynamic> json) {
-    // Optional: Add implementation for full detail response
     throw UnimplementedError('fromJson not implemented');
   }
 

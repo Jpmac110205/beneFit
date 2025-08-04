@@ -3,9 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:game/bloc/bloc/bloc/authentication_bloc.dart';
 import 'package:game/bloc/bloc/bloc/authentication_event.dart' hide AuthenticationBloc;
-import 'package:intl/intl.dart';  // Add intl for date formatting
 import 'package:game/screens/auth/home/views/profile/goals.dart';
 import 'package:game/screens/auth/home/views/profile/settingspage.dart';
+import 'package:game/screens/auth/home/views/challenges/challenges_home.dart';
 import 'package:provider/provider.dart';
 
 
@@ -17,10 +17,12 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileWidget extends State<Profile> {
+  final List<ChallengeBadges> badgeList = [];
+
   String username = '';
   String name = '';
   int streak = 0;
-  DateTime lastActive = DateTime.now();
+  int accountLevel = 0;
   bool isLoading = true;
   String email = '';
 
@@ -29,6 +31,7 @@ class _ProfileWidget extends State<Profile> {
     super.initState();
     pullUserData();
   }
+
 
   Future<void> pullUserData() async {
     try {
@@ -45,7 +48,7 @@ class _ProfileWidget extends State<Profile> {
           username = data['username'] ?? '';
           name = data['name'] ?? 'No Name';
           streak = data['streak'] ?? 0;
-          lastActive = (data['lastActive'] as Timestamp?)?.toDate() ?? DateTime.now();
+          accountLevel = data['accountLevel'] ?? 0;
           isLoading = false;
           email = data['email'] ?? '';
         });
@@ -64,7 +67,6 @@ class _ProfileWidget extends State<Profile> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final formattedDate = DateFormat.yMMMd().add_jm().format(lastActive);
 
     return Scaffold(
       appBar: AppBar(
@@ -85,15 +87,34 @@ class _ProfileWidget extends State<Profile> {
                       mainAxisAlignment: MainAxisAlignment.center, // vertical center
                       crossAxisAlignment: CrossAxisAlignment.center, // horizontal center
                       children: [
-                        _buildInfoTile('Email', email, colorScheme),
+                        BadgeDisplay(badgeList: [ChallengeBadges(
+                          tier: 3,
+                          challenge: 'Protein Streak',
+                          description: "Hit protein goal (3,8,15) days in a row",
+                          icon: Icons.restaurant_menu,
+                        ),
+                        ChallengeBadges(
+                          tier: 2,
+                          challenge: 'Rank Riser',
+                          description: "Hit Platinum Rank (1,3,5) times",
+                          icon: Icons.military_tech,
+                        ),
+                        ChallengeBadges(
+                          tier: 3, 
+                          challenge: 'Iron Marathon',
+                          description: "Workout for more than 2 hours",
+                          icon: Icons.timer,
+                        ),],),
                         const SizedBox(height: 20),
                         _buildInfoTile('Username', username, colorScheme),
+                        const SizedBox(height: 20),
+                        _buildInfoTile('Email', email, colorScheme),
                         const SizedBox(height: 20),
                         _buildInfoTile('Name', name, colorScheme),
                         const SizedBox(height: 20),
                         _buildInfoTile('Streak', streak.toString(), colorScheme),
                         const SizedBox(height: 20),
-                        _buildInfoTile('Last Active', formattedDate, colorScheme),
+                        _buildInfoTile('Account Level', accountLevel.toString(), colorScheme),
                         const SizedBox(height: 40),
                         settingsButton(context, colorScheme),
                         const SizedBox(height: 20),
@@ -115,7 +136,7 @@ class _ProfileWidget extends State<Profile> {
       decoration: BoxDecoration(
         border: Border.all(color: colorScheme.primary),
         borderRadius: BorderRadius.circular(8),
-        color: colorScheme.surface,
+        color: colorScheme.onPrimary,
       ),
       child: Row(
         children: [
@@ -199,7 +220,7 @@ class _ProfileWidget extends State<Profile> {
   );
 }
   Future<void> _signOut(BuildContext context) async {
-  context.read<AuthenticationBloc>().add(AuthenticationLogoutRequested());
+  context.read<AuthenticationBloc>().add(const AuthenticationLogoutRequested());
 }
 }
 

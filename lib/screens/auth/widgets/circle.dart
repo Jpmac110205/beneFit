@@ -14,7 +14,7 @@ class CircularIconButton extends StatelessWidget {
   final Widget? child;
 
   const CircularIconButton({
-    Key? key,
+    super.key,
     this.icon,
     required this.size,
     required this.iconSize,
@@ -24,7 +24,7 @@ class CircularIconButton extends StatelessWidget {
     this.iconOffset = Offset.zero,
     this.backgroundColor,
     this.child,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

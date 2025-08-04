@@ -34,40 +34,46 @@ class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
 
   // Load workouts from Firestore
   Future<void> loadWorkouts() async {
-    setState(() => isLoading = true);
+  setState(() => isLoading = true);
 
-    final user = _auth.currentUser;
-    if (user == null) {
-      setState(() => isLoading = false);
-      return;
-    }
-
-    final snapshot = await _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('workouts')
-        .get();
-
-    final List<WorkoutStats> loadedWorkouts = [];
-
-    for (final doc in snapshot.docs) {
-      final data = doc.data();
-      if (data['name'] != null && data['description'] != null) {
-        try {
-          loadedWorkouts.add(WorkoutStats.fromMap(data, doc.id));
-        } catch (e) {
-          print('Invalid workout format for doc ${doc.id}: $e');
-        }
-      } else {
-        print('Skipping empty/malformed workout: ${doc.id}');
-      }
-    }
-
-    setState(() {
-      workouts = loadedWorkouts;
-      isLoading = false;
-    });
+  final user = _auth.currentUser;
+  if (user == null) {
+    if (!mounted) return;
+    setState(() => isLoading = false);
+    return;
   }
+
+  final snapshot = await _firestore
+      .collection('users')
+      .doc(user.uid)
+      .collection('workouts')
+      .get();
+
+  final List<WorkoutStats> loadedWorkouts = [];
+
+  for (final doc in snapshot.docs) {
+    final data = doc.data();
+    if (data['name'] != null && data['description'] != null) {
+      try {
+        loadedWorkouts.add(WorkoutStats.fromMap(data, doc.id));
+      } catch (e) {
+        print('Invalid workout format for doc ${doc.id}: $e');
+      }
+    } else {
+      print('Skipping empty/malformed workout: ${doc.id}');
+    }
+  }
+
+  if (!mounted) return; // 🔒 Prevent setState after dispose
+
+  setState(() {
+    workouts = loadedWorkouts;
+    isLoading = false;
+  });
+}
+
+
+
 
   // Save or update a workout in Firestore
   Future<void> saveWorkout(WorkoutStats workout) async {
@@ -121,21 +127,24 @@ class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
 
   // Update counters and save workout when finished
   void onWorkoutFinished(WorkoutStats updatedWorkout, int secondsElapsed) {
-    setState(() {
-      updatedWorkout.timesCompleted++;
-      updatedWorkout.daysSinceLast = 0;
-    });
+  if (!mounted) return;
+  setState(() {
+    updatedWorkout.timesCompleted++;
+    updatedWorkout.daysSinceLast = 0;
+  });
 
-    saveWorkout(updatedWorkout);
+  saveWorkout(updatedWorkout);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Updated workout: ${updatedWorkout.name} \nTime Elapsed: ${formatTime(secondsElapsed)}',
-        ),
+  if (!mounted) return; // If this fires after dispose
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        'Updated workout: ${updatedWorkout.name} \nTime Elapsed: ${formatTime(secondsElapsed)}',
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   // Show dialog to edit or delete workout
   void _editWorkout(int index) {
@@ -300,7 +309,7 @@ class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
                       ),
                     ),
                   );
-                }).toList(),
+                }),
                 const SizedBox(height: 20),
                 AddWorkoutButton(onWorkoutAdded: addToWorkout),
                 const SizedBox(height: 150),

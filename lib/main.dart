@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:game/app.dart';
+import 'firebase_options.dart';
 import 'package:game/bloc/bloc/bloc/authentication_event.dart';
 import 'package:game/screens/auth/home/views/calorieTracker/food_log_model.dart';
 import 'package:game/screens/auth/home/views/theme_notifier.dart';
@@ -16,7 +17,9 @@ import 'screens/auth/home/views/friends/search_manager.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: 'assets/.env');
-  await Firebase.initializeApp();
+  await Firebase.initializeApp( // ✅ use generated options
+  options: DefaultFirebaseOptions.currentPlatform,
+);
   Bloc.observer = SimpleBlocObserver();
 
   final themeNotifier = ThemeNotifier();

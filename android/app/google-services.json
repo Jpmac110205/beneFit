@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "748967862279",
+    "project_id": "pizza-delivery-b99d5",
+    "storage_bucket": "pizza-delivery-b99d5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:748967862279:android:7fec20722cd8d74d0ecaa2",
+        "android_client_info": {
+          "package_name": "com.example.game"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDeriOJNIx0WcxU5QbDsFATW_vKCQfvmb8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:748967862279:android:bb6d6b321038e9e00ecaa2",
+        "android_client_info": {
+          "package_name": "com.jimmymcallister.game"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDeriOJNIx0WcxU5QbDsFATW_vKCQfvmb8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

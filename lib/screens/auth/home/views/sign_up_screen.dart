@@ -30,6 +30,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return BlocListener<SignUpBloc, SignUpState>(
       listener: (context, state) {
         if (state is SignUpSuccess) {
@@ -61,10 +63,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         width: MediaQuery.of(context).size.width * 0.9,
                         child: MyTextField(
                           controller: emailController,
+                          style: TextStyle(color: Colors.black),
                           hintText: 'Email',
                           obscureText: false,
                           keyboardType: TextInputType.emailAddress,
-                          prefixIcon: const Icon(CupertinoIcons.mail_solid),
+                          prefixIcon: const Icon(CupertinoIcons.mail_solid, color: Colors.black),
                           validator: (val) {
                             if (val!.isEmpty) {
                               return 'Please fill in this field';
@@ -81,10 +84,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         width: MediaQuery.of(context).size.width * 0.9,
                         child: MyTextField(
                           controller: usernameController,
+                          style: TextStyle(color: Colors.black),
                           hintText: 'Username',
                           obscureText: false,
                           keyboardType: TextInputType.text,
-                          prefixIcon: const Icon(CupertinoIcons.person_crop_circle),
+                          prefixIcon: const Icon(CupertinoIcons.person_crop_circle, color: Colors.black),
                           validator: (val) {
                             if (val == null || val.isEmpty) {
                               return 'Please choose a username';
@@ -102,10 +106,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         width: MediaQuery.of(context).size.width * 0.9,
                         child: MyTextField(
                           controller: passwordController,
+                          style: TextStyle(color: Colors.black),
                           hintText: 'Password',
                           obscureText: obscurePassword,
                           keyboardType: TextInputType.visiblePassword,
-                          prefixIcon: const Icon(CupertinoIcons.lock_fill),
+                          prefixIcon: const Icon(CupertinoIcons.lock_fill, color: Colors.black),
                           onChanged: (val) {
                             if (val!.contains(RegExp(r'[A-Z]'))) {
                               setState(() {
@@ -236,11 +241,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       SizedBox(
                         width: MediaQuery.of(context).size.width * 0.9,
                         child: MyTextField(
+                          style: TextStyle(color: Colors.black),
                           controller: nameController,
                           hintText: 'Name',
                           obscureText: false,
                           keyboardType: TextInputType.name,
-                          prefixIcon: const Icon(CupertinoIcons.person_fill),
+                          prefixIcon: const Icon(CupertinoIcons.person_fill, color: Colors.black),
                           validator: (val) {
                             if (val!.isEmpty) {
                               return 'Please fill in this field';
@@ -261,7 +267,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     MyUser myUser = MyUser.empty;
                                     myUser.email = emailController.text;
                                     myUser.name = nameController.text;
-                                    myUser.username = usernameController.text;
+                                    myUser.username = usernameController.text.toLowerCase();
 
                                     setState(() {
                                       context.read<SignUpBloc>().add(
@@ -277,17 +283,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     elevation: 3.0,
                                     backgroundColor:
                                         Theme.of(context).colorScheme.primary,
-                                    foregroundColor: Colors.white,
+                                    foregroundColor: colorScheme.onPrimary,
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(60))),
-                                child: const Padding(
+                                child:  Padding(
                                   padding: EdgeInsets.symmetric(
                                       horizontal: 25, vertical: 5),
                                   child: Text(
                                     'Sign Up',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
-                                        color: Colors.white,
+                                        color: colorScheme.onPrimary,
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600),
                                   ),

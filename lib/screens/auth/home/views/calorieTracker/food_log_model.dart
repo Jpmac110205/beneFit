@@ -8,6 +8,42 @@ class FoodLogModel extends ChangeNotifier {
   List<Food> _userFoodLog = [];
 
   List<Food> get userFoodLog => _userFoodLog;
+Future<void> cleanupOldFoodLogs() async {
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  if (uid == null) return;
+
+  final today = currentWeekday;
+  const weekdays = [
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+  ];
+
+  for (final day in weekdays) {
+    if (day == today) continue; // skip today's data
+
+    final foodsRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('calories')
+        .doc(day)
+        .collection('foods');
+
+    final foodsSnapshot = await foodsRef.get();
+    for (final doc in foodsSnapshot.docs) {
+      await doc.reference.delete();
+    }
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('calories')
+        .doc(day)
+        .set({
+      'lastCleaned': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+}
+
+
 
   String get currentWeekday => DateFormat('EEEE').format(DateTime.now());
   Future<void> deleteFood(Food food) async {
@@ -29,7 +65,6 @@ class FoodLogModel extends ChangeNotifier {
     _userFoodLog.remove(food);
     notifyListeners();
 
-    // Optionally update totals (subtract deleted food values)
     final dayDocRef = FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
@@ -58,6 +93,8 @@ class FoodLogModel extends ChangeNotifier {
 
 
   Future<void> loadFoodsFromFirebase() async {
+    await cleanupOldFoodLogs();
+    
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
@@ -79,7 +116,7 @@ class FoodLogModel extends ChangeNotifier {
   final double fat = (data['fat'] as num?)?.toDouble() ?? 0;
 
   return Food(
-    docId: doc.id,  // <-- Assign Firestore doc ID here
+    docId: doc.id,  
     name: data['foodName'] ?? '',
     baseCalories: calories,
     baseProtein: protein,
@@ -117,7 +154,6 @@ class FoodLogModel extends ChangeNotifier {
     final foodRef = dayDocRef.collection('foods').doc();
 
     try {
-      // Add the food item to the subcollection
       await foodRef.set({
         'foodName': food.name,
         'protein': food.protein,
@@ -127,7 +163,6 @@ class FoodLogModel extends ChangeNotifier {
         'timestamp': Timestamp.fromDate(food.timestamp),
       });
 
-      // Update the totals
       final totalsSnapshot = await dayDocRef.get();
       final data = totalsSnapshot.data() ?? {};
 
@@ -148,7 +183,6 @@ class FoodLogModel extends ChangeNotifier {
     }
   }
 
-  /// Reset all weekdays (optional utility)
   Future<void> resetWeeklyData() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;

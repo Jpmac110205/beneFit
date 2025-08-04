@@ -4,6 +4,9 @@ import 'package:game/screens/auth/widgets/circle.dart';
 import 'package:game/screens/auth/home/views/calorieTracker/food_log_model.dart';
 import 'package:game/screens/auth/widgets/space.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 
 class CalorieTrackerScreen extends StatefulWidget {
   const CalorieTrackerScreen({super.key});
@@ -13,14 +16,97 @@ class CalorieTrackerScreen extends StatefulWidget {
 }
 
 class _CalorieTrackerScreenState extends State<CalorieTrackerScreen> {
+  int? calorieGoal;
+int? proteinGoal;
+int? carbsGoal;
+int? fatGoal;
+
   @override
   void initState() {
     super.initState();
     Future.microtask(() {
       final foodLogModel = Provider.of<FoodLogModel>(context, listen: false);
       foodLogModel.loadFoodsFromFirebase();
+      loadAndComputeMacros(); 
     });
   }
+
+  Future<void> updateProteinStreak(double totalProtein) async {
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  if (uid == null || proteinGoal == null) return;
+
+  final today = DateTime.now();
+  final todayString = "${today.year}-${today.month}-${today.day}";
+
+  final challengeDoc = FirebaseFirestore.instance
+      .collection('users')
+      .doc(uid)
+      .collection('challenges')
+      .doc('longestProteinStreak');
+
+  final snapshot = await challengeDoc.get();
+
+  int currentStreak = 0;
+  int longestStreak = 0;
+  String? lastUpdatedDate;
+
+  if (snapshot.exists) {
+    final data = snapshot.data()!;
+    currentStreak = data['currentProteinStreak'] ?? 0;
+    longestStreak = data['longestProteinStreak'] ?? 0;
+    lastUpdatedDate = data['lastUpdatedDate'];
+  }
+
+  if (lastUpdatedDate == todayString) {
+    return; // Already updated today
+  }
+
+  bool hitGoal = totalProtein >= proteinGoal!;
+
+  if (hitGoal) {
+    currentStreak += 1;
+    if (currentStreak > longestStreak) {
+      longestStreak = currentStreak;
+    }
+  } else {
+    currentStreak = 0;
+  }
+
+  await challengeDoc.set({
+    'currentProteinStreak': currentStreak,
+    'longestProteinStreak': longestStreak,
+    'lastUpdatedDate': todayString,
+  });
+}
+
+  Future<Map<String, dynamic>?> fetchUserGoals() async {
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  if (uid == null) return null;
+
+  final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+  if (!doc.exists) return null;
+
+  return doc.data();
+}
+
+Future<void> loadAndComputeMacros() async {
+  final goals = await fetchUserGoals();
+  if (goals == null) return;
+
+  final int calorie = goals['calorieGoal'] ?? 0;
+  final double proteinPercent = (goals['proteinPercent'] ?? 30).toDouble();
+  final double carbsPercent = (goals['carbsPercent'] ?? 40).toDouble();
+  final double fatPercent = (goals['fatPercent'] ?? 30).toDouble();
+
+  setState(() {
+    calorieGoal = calorie;
+    proteinGoal = ((proteinPercent / 100) * calorie / 4).round();
+    carbsGoal = ((carbsPercent / 100) * calorie / 4).round();
+    fatGoal = ((fatPercent / 100) * calorie / 9).round();
+  });
+}
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +117,6 @@ class _CalorieTrackerScreenState extends State<CalorieTrackerScreen> {
       builder: (context, foodLogModel, _) {
         final userFoodLog = foodLogModel.userFoodLog;
 
-        int targetCalories = 2000;
         double totalProtein = 0;
         double totalCarbs = 0;
         double totalFat = 0;
@@ -43,6 +128,9 @@ class _CalorieTrackerScreenState extends State<CalorieTrackerScreen> {
         }
 
         double totalCalories = (totalProtein * 4) + (totalCarbs * 4) + (totalFat * 9);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+    updateProteinStreak(totalProtein);
+  });
 
         return Scaffold(
           appBar: AppBar(
@@ -76,11 +164,10 @@ class _CalorieTrackerScreenState extends State<CalorieTrackerScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      'Protein: ${totalProtein.toStringAsFixed(1)} g\n'
-                      'Carbohydrates: ${totalCarbs.toStringAsFixed(1)} g\n'
-                      'Fat: ${totalFat.toStringAsFixed(1)} g\n'
-                      'Total Calories: ${totalCalories.toStringAsFixed(1)}\n'
-                      'Target Calories: $targetCalories',
+                      'Protein: ${totalProtein.toStringAsFixed(1)}g  /  ${proteinGoal}g \n'
+                      'Carbohydrates: ${totalCarbs.toStringAsFixed(1)}g  /  ${carbsGoal}g\n'
+                      'Fat: ${totalFat.toStringAsFixed(1)}g  /  ${fatGoal}g\n'
+                      'Total Calories: ${totalCalories.toStringAsFixed(1)}  /  $calorieGoal\n',
                       style: theme.textTheme.bodyLarge,
                     ),
                   ),
@@ -146,7 +233,7 @@ class _CalorieTrackerScreenState extends State<CalorieTrackerScreen> {
                               ],
                             ),
                           );
-                        }).toList(),
+                        }),
                       ],
                     ),
                   ),

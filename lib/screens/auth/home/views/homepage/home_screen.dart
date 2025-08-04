@@ -3,9 +3,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:game/screens/auth/home/premium/muscle_predictor/muscle_predictor.dart';
 import 'package:game/screens/auth/home/views/challenges/challenges_home.dart';
 import 'package:game/screens/auth/widgets/circle.dart';
-import 'package:game/screens/auth/home/views/calorieTracker/track_calories_home.dart';
+import 'package:game/screens/auth/home/premium/ai/ai_assistant.dart';
 import 'package:game/screens/auth/home/views/workoutTracker/workout_tracker.dart';
 import 'package:game/screens/auth/home/views/Ranked/ranked_tracker.dart';
 import 'package:game/screens/auth/home/views/calorieTracker/calorie_tracker.dart';
@@ -22,6 +23,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 2;
+  
 
   late final PageController _pageController;
   late final List<GlobalKey> _buttonKeys;
@@ -294,12 +296,14 @@ class HomeContentScreen extends StatelessWidget {
     required this.selectedWorkout,
     this.onWorkoutSelected,
   });
+  
 
   @override
   Widget build(BuildContext context) {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+
         final maxWidth = constraints.maxWidth;
         final boxMaxWidth = maxWidth * 0.9 > 400 ? 400.0 : maxWidth * 0.9;
         final halfBoxMaxWidth = (boxMaxWidth - 20) / 2;
@@ -310,6 +314,7 @@ class HomeContentScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+
                 ConstrainedBox(
                   constraints: BoxConstraints(
                     maxWidth: boxMaxWidth,
@@ -322,26 +327,55 @@ class HomeContentScreen extends StatelessWidget {
                         const Icon(Icons.image_not_supported, size: 100),
                   ),
                 ),
-                const SizedBox(height: 30),
-                const Center(child: TrackCaloriesHome()),
+                const SizedBox(height: 10),
+                Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  AiAssistant(), 
+                  SizedBox(width: 30),
+                  MusclePredictor(),
+                ],
+              ),
+
                 const SizedBox(height: 30),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Flexible(
-                      child: _buildBox(context, 'Friends List Preview',
+                      child: _buildBox(context, 'Daily Challenges',
                           width: halfBoxMaxWidth),
                     ),
                     const SizedBox(width: 20),
                     Flexible(
-                      child: _buildBox(context, 'Ranked Tracker Preview',
+                      child: _buildBox(context, 'Unlock Premium',
                           width: halfBoxMaxWidth),
                     ),
                   ],
                 ),
                 const SizedBox(height: 30),
-                _buildBox(context, 'Graphics and Achievements',
+                _buildBox(context, 'Macro Specific Bar Graphs',
                     width: boxMaxWidth),
+                    SizedBox(height: 30),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: _buildBox(context, 'Steps Tracker',
+                          width: halfBoxMaxWidth),
+                    ),
+                    const SizedBox(width: 20),
+                    Flexible(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildBox(context, 'Weekly Health OVR (Premium)', width: halfBoxMaxWidth),
+                        ],
+                      ),
+                    ),
+
+                  ],
+                ),
+                SizedBox(height: 150),
               ],
             ),
           ),
