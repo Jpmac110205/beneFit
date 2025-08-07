@@ -112,7 +112,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           keyboardType: TextInputType.visiblePassword,
                           prefixIcon: const Icon(CupertinoIcons.lock_fill, color: Colors.black),
                           onChanged: (val) {
-                            if (val!.contains(RegExp(r'[A-Z]'))) {
+                            if (val.contains(RegExp(r'[A-Z]'))) {
                               setState(() {
                                 containsUpperCase = true;
                               });
@@ -158,7 +158,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 contains8Length = false;
                               });
                             }
-                            return null;
+                            return;
                           },
                           suffixIcon: IconButton(
                             onPressed: () {

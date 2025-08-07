@@ -318,10 +318,10 @@ class HomeContentScreen extends StatelessWidget {
                 ConstrainedBox(
                   constraints: BoxConstraints(
                     maxWidth: boxMaxWidth,
-                    maxHeight: 200,
+                    maxHeight: 250,
                   ),
                   child: Image.asset(
-                    'images/A.png',
+                    'images/d2.png',
                     fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) =>
                         const Icon(Icons.image_not_supported, size: 100),
@@ -347,7 +347,7 @@ class HomeContentScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 20),
                     Flexible(
-                      child: _buildBox(context, 'Unlock Premium',
+                      child: _buildBox(context, 'Steps Tracker',
                           width: halfBoxMaxWidth),
                     ),
                   ],
@@ -356,25 +356,7 @@ class HomeContentScreen extends StatelessWidget {
                 _buildBox(context, 'Macro Specific Bar Graphs',
                     width: boxMaxWidth),
                     SizedBox(height: 30),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: _buildBox(context, 'Steps Tracker',
-                          width: halfBoxMaxWidth),
-                    ),
-                    const SizedBox(width: 20),
-                    Flexible(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildBox(context, 'Weekly Health OVR (Premium)', width: halfBoxMaxWidth),
-                        ],
-                      ),
-                    ),
-
-                  ],
-                ),
+                
                 SizedBox(height: 150),
               ],
             ),

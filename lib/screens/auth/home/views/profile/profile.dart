@@ -3,9 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:game/bloc/bloc/bloc/authentication_bloc.dart';
 import 'package:game/bloc/bloc/bloc/authentication_event.dart' hide AuthenticationBloc;
+import 'package:game/screens/auth/home/views/challenges/list_of_challenges.dart';
 import 'package:game/screens/auth/home/views/profile/goals.dart';
 import 'package:game/screens/auth/home/views/profile/settingspage.dart';
 import 'package:game/screens/auth/home/views/challenges/challenges_home.dart';
+import 'package:game/screens/auth/home/views/workoutTracker/workoutProvider.dart';
 import 'package:provider/provider.dart';
 
 
@@ -17,7 +19,7 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileWidget extends State<Profile> {
-  final List<ChallengeBadges> badgeList = [];
+  List<ChallengeBadges> badgeList = [];
 
   String username = '';
   String name = '';
@@ -25,10 +27,11 @@ class _ProfileWidget extends State<Profile> {
   int accountLevel = 0;
   bool isLoading = true;
   String email = '';
-
+  late Duration elapsed;
   @override
   void initState() {
     super.initState();
+     elapsed = Duration(seconds: WorkoutProvider().secondsWorkedOut);
     pullUserData();
   }
 
@@ -42,9 +45,35 @@ class _ProfileWidget extends State<Profile> {
 
       final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
+
       if (doc.exists) {
         final data = doc.data()!;
+        final List<dynamic>? savedBadges = data['savedBadges'];
+        List<ChallengeBadges> finalBadgeList;
+
+  if (savedBadges != null && savedBadges.isNotEmpty) {
+    finalBadgeList = savedBadges
+        .map((badgeData) => ChallengeBadges.fromMap(badgeData))
+        .toList();
+  } else {
+    // fallback if nothing is stored yet
+    final challenges = await buildChallengeBadges(elapsed);
+    finalBadgeList = List.generate(3, (index) {
+      if (index < challenges.length) {
+        return challenges[index];
+      } else {
+        return const ChallengeBadges(
+          tier: 1,
+          challenge: 'DEFAULT',
+          description: 'DEFAULT',
+          icon: Icons.add,
+        );
+      }
+    });
+  }
+
         setState(() {
+           badgeList = finalBadgeList;
           username = data['username'] ?? '';
           name = data['name'] ?? 'No Name';
           streak = data['streak'] ?? 0;
@@ -87,24 +116,10 @@ class _ProfileWidget extends State<Profile> {
                       mainAxisAlignment: MainAxisAlignment.center, // vertical center
                       crossAxisAlignment: CrossAxisAlignment.center, // horizontal center
                       children: [
-                        BadgeDisplay(badgeList: [ChallengeBadges(
-                          tier: 3,
-                          challenge: 'Protein Streak',
-                          description: "Hit protein goal (3,8,15) days in a row",
-                          icon: Icons.restaurant_menu,
-                        ),
-                        ChallengeBadges(
-                          tier: 2,
-                          challenge: 'Rank Riser',
-                          description: "Hit Platinum Rank (1,3,5) times",
-                          icon: Icons.military_tech,
-                        ),
-                        ChallengeBadges(
-                          tier: 3, 
-                          challenge: 'Iron Marathon',
-                          description: "Workout for more than 2 hours",
-                          icon: Icons.timer,
-                        ),],),
+                        BadgeDisplay(
+                    badgeList: badgeList,
+                    pressable: false,
+                  ),
                         const SizedBox(height: 20),
                         _buildInfoTile('Username', username, colorScheme),
                         const SizedBox(height: 20),

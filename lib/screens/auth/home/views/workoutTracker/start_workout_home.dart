@@ -1,13 +1,19 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:game/screens/auth/home/views/workoutTracker/workout_tracker.dart';
-import 'package:game/screens/auth/home/views/workoutTracker/exercise.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:game/screens/auth/home/views/workoutTracker/workout_tracker.dart';
+import 'package:game/screens/auth/home/views/workoutTracker/exercise.dart';
 
+bool isUserMoving = true;
+StreamSubscription? accelerometerSubscription;
+DateTime lastMotionDetected = DateTime.now();
+DateTime lastUserInteraction = DateTime.now(); // <-- Added
 
 class StartWorkoutHome extends StatefulWidget {
   final WorkoutStats workout;
+
 
   const StartWorkoutHome({super.key, required this.workout});
 
@@ -17,23 +23,32 @@ class StartWorkoutHome extends StatefulWidget {
 
 class _StartWorkoutHomeState extends State<StartWorkoutHome> {
   late List<Exercise> exercises;
+
   late List<List<TextEditingController>> repsControllers;
   late List<List<TextEditingController>> weightControllers;
 
   DateTime? startTime;
-Duration elapsed = Duration.zero;
-Timer? timer;
-
+  DateTime? endTime;
+  Duration elapsed = Duration.zero;
+  Timer? timer;
 
   @override
   void initState() {
     super.initState();
     initializeWorkoutData();
+    
     startStopwatch();
   }
-  Future<void> updateSetCompletionStatus(int exerciseIndex, int setIndex, bool isComplete) async {
+  int getWorkoutSeconds(DateTime? startTime, DateTime? endTime) {
+  if (startTime != null && endTime != null) {
+    return endTime.difference(startTime).inSeconds;
+  }
+  return 0;
+}
+
+Future<int> findTotalVolume() async {
   final user = FirebaseAuth.instance.currentUser;
-  if (user == null || widget.workout.id == null) return;
+  if (user == null || widget.workout.id == null) return 0;
 
   final workoutDoc = FirebaseFirestore.instance
       .collection('users')
@@ -42,29 +57,52 @@ Timer? timer;
       .doc(widget.workout.id);
 
   final docSnapshot = await workoutDoc.get();
-  if (!docSnapshot.exists) return;
+  if (!docSnapshot.exists) return 0;
 
   final workoutData = docSnapshot.data()!;
-  final exercisesData = List<Map<String, dynamic>>.from(workoutData['exercises'] ?? []);
+  final exercises = List<Map<String, dynamic>>.from(workoutData['exercises'] ?? []);
 
-  if (exerciseIndex >= exercisesData.length) return;
+  int totalVolume = 0;
 
-  final exerciseData = Map<String, dynamic>.from(exercisesData[exerciseIndex]);
-  final setsData = List<Map<String, dynamic>>.from(exerciseData['sets'] ?? []);
+  for (var exercise in exercises) {
+    final sets = List<Map<String, dynamic>>.from(exercise['sets'] ?? []);
+    for (var set in sets) {
+      final int? reps = set['reps'];
+      final int? weight = set['weight'];
+      if (reps != null && weight != null) {
+        totalVolume += reps * weight;
+      }
+    }
+  }
 
-  if (setIndex >= setsData.length) return;
+  // ✅ Store totalVolume in this workout document
+  await workoutDoc.set({
+    'totalVolume': totalVolume,
+  }, SetOptions(merge: true)); // merge ensures it doesn't overwrite other fields
 
-  setsData[setIndex]['isComplete'] = isComplete;
-
-  exerciseData['sets'] = setsData;
-  exercisesData[exerciseIndex] = exerciseData;
-
-  workoutData['exercises'] = exercisesData;
-
-  await workoutDoc.set(workoutData);
+  return totalVolume;
 }
 
-  // Deep copy exercises & initialize text controllers
+
+
+
+
+
+  bool hasRecentInteraction() {
+    return DateTime.now().difference(lastUserInteraction) < const Duration(minutes: 3);
+  }
+
+  void startStopwatch() {
+    startTime = DateTime.now();
+    timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (startTime != null && isUserMoving && hasRecentInteraction()) {
+        setState(() {
+          elapsed = DateTime.now().difference(startTime!);
+        });
+      }
+    });
+  }
+
   void initializeWorkoutData() {
     exercises = widget.workout.exercises.map((e) {
       return Exercise(
@@ -79,30 +117,18 @@ Timer? timer;
       );
     }).toList();
 
-    repsControllers = exercises
-        .map((e) => e.sets
-            .map((s) => TextEditingController(text: s.reps?.toString() ?? ''))
-            .toList())
-        .toList();
+    repsControllers = exercises.map((e) {
+      return e.sets.map((s) {
+        return TextEditingController(text: s.reps?.toString() ?? '');
+      }).toList();
+    }).toList();
 
-    weightControllers = exercises
-        .map((e) => e.sets
-            .map((s) => TextEditingController(text: s.weight?.toString() ?? ''))
-            .toList())
-        .toList();
+    weightControllers = exercises.map((e) {
+      return e.sets.map((s) {
+        return TextEditingController(text: s.weight?.toString() ?? '');
+      }).toList();
+    }).toList();
   }
-
-  void startStopwatch() {
-  startTime = DateTime.now();
-  timer = Timer.periodic(const Duration(seconds: 1), (_) {
-    setState(() {
-      if (startTime != null) {
-        elapsed = DateTime.now().difference(startTime!);
-      }
-    });
-  });
-}
-
 
   @override
   void dispose() {
@@ -117,6 +143,7 @@ Timer? timer;
         controller.dispose();
       }
     }
+    accelerometerSubscription?.cancel();
     super.dispose();
   }
 
@@ -141,17 +168,15 @@ Timer? timer;
   }
 
   void finishSet(int exerciseIndex, int setIndex) {
-  setState(() {
-    final set = exercises[exerciseIndex].sets[setIndex];
-    set.isComplete = !set.isComplete;
-  });
+    lastUserInteraction = DateTime.now();
+    setState(() {
+      final set = exercises[exerciseIndex].sets[setIndex];
+      set.isComplete = !set.isComplete;
+    });
 
-  // Update Firebase
-  final isComplete = exercises[exerciseIndex].sets[setIndex].isComplete;
-  updateSetCompletionStatus(exerciseIndex, setIndex, isComplete);
-}
-
-
+    final isComplete = exercises[exerciseIndex].sets[setIndex].isComplete;
+    updateSetCompletionStatus(exerciseIndex, setIndex, isComplete);
+  }
 
   void completeAllRemainingSets() {
     setState(() {
@@ -162,31 +187,83 @@ Timer? timer;
       }
     });
   }
+  
+
+
 
   void resetWorkout() {
-  setState(() {
-    elapsed = Duration.zero;
-    startTime = null;
-    for (var exercise in exercises) {
-      for (var set in exercise.sets) {
-        set.isComplete = false;
+    setState(() {
+      elapsed = Duration.zero;
+      startTime = null;
+      for (var exercise in exercises) {
+        for (var set in exercise.sets) {
+          set.isComplete = false;
+        }
       }
-    }
-    initializeWorkoutData();
-  });
-}
+      initializeWorkoutData();
+    });
+  }
+  
 
-  void finishWorkout({required bool finished}) {
+  void finishWorkout({required bool finished}) async {
+  final secondsWorkedOut = elapsed.inSeconds;
+
   Navigator.of(context).pop({
     'finished': finished,
-    'duration': elapsed.inSeconds,
-    'exercises': exercises, // <--- this was missing
+    'duration': secondsWorkedOut,
+    'exercises': exercises,
   });
 
   if (finished) {
+    await checkTimerTime(Duration(seconds: secondsWorkedOut));
     resetWorkout();
   }
 }
+
+
+
+  Future<void> updateSetCompletionStatus(int exerciseIndex, int setIndex, bool isComplete) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || widget.workout.id == null) return;
+
+    final workoutDoc = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('workouts')
+        .doc(widget.workout.id);
+
+    final docSnapshot = await workoutDoc.get();
+    if (!docSnapshot.exists) return;
+
+    final workoutData = docSnapshot.data()!;
+    final exercisesData = List<Map<String, dynamic>>.from(workoutData['exercises'] ?? []);
+
+    if (exerciseIndex >= exercisesData.length) return;
+
+    final exerciseData = Map<String, dynamic>.from(exercisesData[exerciseIndex]);
+    final setsData = List<Map<String, dynamic>>.from(exerciseData['sets'] ?? []);
+
+    if (setIndex >= setsData.length) return;
+
+    setsData[setIndex]['isComplete'] = isComplete;
+    exerciseData['sets'] = setsData;
+    exercisesData[exerciseIndex] = exerciseData;
+
+    workoutData['exercises'] = exercisesData;
+
+    await workoutDoc.set(workoutData);
+  }
+
+  String formatTime(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final secs = twoDigits(duration.inSeconds.remainder(60));
+    if (duration.inHours > 0) {
+      final hours = twoDigits(duration.inHours);
+      return '$hours:$minutes:$secs';
+    }
+    return '$minutes:$secs';
+  }
 
   Widget finishButton() {
     final theme = Theme.of(context);
@@ -202,18 +279,6 @@ Timer? timer;
     );
   }
 
-  // Format seconds as HH:MM:SS or MM:SS
- String formatTime(Duration duration) {
-  String twoDigits(int n) => n.toString().padLeft(2, '0');
-  final minutes = twoDigits(duration.inMinutes.remainder(60));
-  final secs = twoDigits(duration.inSeconds.remainder(60));
-  if (duration.inHours > 0) {
-    final hours = twoDigits(duration.inHours);
-    return '$hours:$minutes:$secs';
-  }
-  return '$minutes:$secs';
-}
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -221,7 +286,7 @@ Timer? timer;
     return WillPopScope(
       onWillPop: () async {
         finishWorkout(finished: false);
-        return false; // prevent default pop
+        return false;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -330,7 +395,7 @@ Timer? timer;
                                       icon: Icon(
                                         Icons.check,
                                         color: set.isComplete
-                                            ? theme.colorScheme.primary 
+                                            ? theme.colorScheme.primary
                                             : theme.colorScheme.onSurfaceVariant,
                                       ),
                                       onPressed: () => finishSet(exerciseIndex, setIndex),
@@ -372,4 +437,21 @@ Timer? timer;
       ),
     );
   }
+}
+Future<bool> checkTimerTime(Duration elapsed) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return false;
+
+  final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+  final docSnapshot = await docRef.get();
+
+  final alreadyAchieved = docSnapshot.data()?['twoHourWorkout'] ?? false;
+
+  // Only update if not already true and workout is over 2 hours
+  if (!alreadyAchieved && elapsed.inSeconds >= 7200) {
+    await docRef.set({'twoHourWorkout': true}, SetOptions(merge: true));
+    return true;
+  }
+
+  return alreadyAchieved;
 }

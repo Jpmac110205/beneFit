@@ -8,6 +8,12 @@ class WorkoutProvider extends ChangeNotifier {
 
   bool isWorkoutActive = false;
 
+  DateTime? _startTime;
+  Duration _elapsed = Duration.zero;
+
+  Duration get elapsed => _elapsed;
+  int get secondsWorkedOut => _elapsed.inSeconds;
+
   void startWorkout({
     required String newName,
     required String newDescription,
@@ -17,26 +23,38 @@ class WorkoutProvider extends ChangeNotifier {
     description = newDescription;
     exercises = newExercises;
     isWorkoutActive = true;
+    _startTime = DateTime.now();
+    _elapsed = Duration.zero;
     notifyListeners();
   }
 
   void addSet(int exerciseIndex) {
-    exercises[exerciseIndex].sets.add(ExerciseSet(reps:exerciseIndex, weight: 0));
+    exercises[exerciseIndex].sets.add(ExerciseSet(reps: 0, weight: 0));
     notifyListeners();
   }
 
   void toggleSetCompleted(int exerciseIndex, int setIndex) {
-    // Optional: You could add a 'completed' flag to ExerciseSet and toggle here
+    // Optional: Implement if sets can be marked complete
     notifyListeners();
   }
 
   void finishWorkout() {
+    if (_startTime != null) {
+      _elapsed = DateTime.now().difference(_startTime!);
+    }
     isWorkoutActive = false;
     name = '';
     description = '';
     exercises = [];
+    _startTime = null;
     notifyListeners();
   }
 
-  // Add more helper methods like update reps/weight if needed
+  // Optional: Call this periodically to update UI
+  void updateElapsed() {
+    if (_startTime != null) {
+      _elapsed = DateTime.now().difference(_startTime!);
+      notifyListeners();
+    }
+  }
 }

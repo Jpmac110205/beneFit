@@ -20,6 +20,7 @@ class _CalorieTrackerScreenState extends State<CalorieTrackerScreen> {
 int? proteinGoal;
 int? carbsGoal;
 int? fatGoal;
+int? totalFoodsLogged;
 
   @override
   void initState() {
@@ -78,6 +79,34 @@ int? fatGoal;
     'lastUpdatedDate': todayString,
   });
 }
+ Future<void> totalFoods(int foodsJustLogged) async {
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  if (uid == null) return;
+
+  final challengeDoc = FirebaseFirestore.instance
+      .collection('users')
+      .doc(uid)
+      .collection('calories')
+      .doc('totalFoodsLogged');
+
+  final snapshot = await challengeDoc.get();
+
+  int totalFoodsSoFar = 0;
+  
+  if (snapshot.exists) {
+    final data = snapshot.data()!;
+    totalFoodsSoFar = data['totalFoodsLogged'] ?? 0;
+  }
+
+  // Increment total foods
+  final updatedTotal = totalFoodsSoFar + foodsJustLogged;
+
+  await challengeDoc.set({
+    'totalFoodsLogged': updatedTotal,
+  });
+}
+
+
 
   Future<Map<String, dynamic>?> fetchUserGoals() async {
   final uid = FirebaseAuth.instance.currentUser?.uid;

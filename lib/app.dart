@@ -14,6 +14,7 @@ class MyApp extends StatelessWidget {
     return RepositoryProvider<AuthenticationBloc>(
       create: (context) => AuthenticationBloc(
         userRepository: userRepository,
+
       ),
       // ✅ Removed ChangeNotifierProvider<ThemeNotifier>
       // ThemeNotifier is already provided in main.dart with .value

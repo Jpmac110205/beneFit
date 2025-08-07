@@ -1,9 +1,11 @@
+// your imports
 import 'package:flutter/material.dart';
-import 'package:game/screens/auth/home/views/challenges/list_of_challenges.dart';
-import 'package:game/screens/auth/home/views/challenges/friends_service.dart';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:game/screens/auth/home/views/challenges/friends_service.dart';
+import 'package:game/screens/auth/home/views/challenges/list_of_challenges.dart';
+import 'package:game/screens/auth/home/views/workoutTracker/workoutProvider.dart';
+
 
 class ChallengesHome extends StatefulWidget {
   const ChallengesHome({super.key});
@@ -13,51 +15,60 @@ class ChallengesHome extends StatefulWidget {
 }
 
 class _ChallengesHomeState extends State<ChallengesHome> {
+  final user = FirebaseAuth.instance.currentUser;
+
   int userAccountLevel = 0;
   int userTotalExp = 0;
   double levelProgress = 0.0;
-  final List<ChallengeBadges> badgeList = [
-  ChallengeBadges(
-    tier: 3,
-    challenge: 'Protein Streak',
-    description: "Hit protein goal (3,8,15) days in a row",
-    icon: Icons.restaurant_menu,
-  ),
-  ChallengeBadges(
-    tier: 2,
-    challenge: 'Rank Riser',
-    description: "Hit Platinum Rank (1,3,5) times",
-    icon: Icons.military_tech,
-  ),
-  ChallengeBadges(
-    tier: 3, 
-    challenge: 'Iron Marathon',
-    description: "Workout for more than 2 hours",
-    icon: Icons.timer,
-  ),
-];
 
-
-  final user = FirebaseAuth.instance.currentUser;
+  late Duration elapsed;
+  List<Map<String, dynamic>>? cachedFriends;
+  List<ChallengeBadges>? cachedChallenges;
+  List<ChallengeBadges> badgeList = [];
 
   @override
   void initState() {
     super.initState();
-    loadUserLevelAndProgress();
-      }
+    elapsed = Duration(seconds: WorkoutProvider().secondsWorkedOut);
+    loadInitialData();
+  }
+
+  Future<void> loadInitialData() async {
+  await loadUserLevelAndProgress(); // Only load once (includes badges)
+  await loadFriendsData();          // Load other stuff
+  final challenges = await buildChallengeBadges(elapsed); // for _buildChallengesTab
+  if (mounted) {
+    setState(() {
+      cachedChallenges = challenges;
+    });
+  }
+}
+
+
   
+  Future<void> saveBadgeListToFirestore() async {
+  final badgeMaps = badgeList.map((badge) => badge.toMap()).toList();
 
-  void loadUserLevelAndProgress() async {
-  final docSnap = await FirebaseFirestore.instance
+  await FirebaseFirestore.instance
       .collection('users')
-      .doc(FirebaseAuth.instance.currentUser!.uid)
+      .doc(user!.uid)
+      .set({
+        'savedBadges': badgeMaps,
+      }, SetOptions(merge: true)); // ensures existing fields are not overwritten
+}
+
+
+  Future<void> loadUserLevelAndProgress() async {
+  final doc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user!.uid)
       .get();
+  final data = doc.data();
 
-  final data = docSnap.data();
-  int currentLevel = data?['accountLevel'] ?? 1;
-  int totalExp = data?['totalExp'] ?? 0;
-
-  final levelData = accountLevelCalculator(currentLevel, totalExp);
+  final List<dynamic>? savedBadges = data?['savedBadges'];
+  final currentLevel = data?['accountLevel'] ?? 1;
+  final totalExp = data?['totalExp'] ?? 0;
+  final levelData = accountLevelCalculator(1, totalExp);
 
   if (levelData['level'] > currentLevel) {
     await FirebaseFirestore.instance
@@ -66,394 +77,426 @@ class _ChallengesHomeState extends State<ChallengesHome> {
         .update({'accountLevel': levelData['level']});
   }
 
-  // Add a mounted check before setState
+  List<ChallengeBadges> finalBadgeList;
+
+  if (savedBadges != null && savedBadges.isNotEmpty) {
+    finalBadgeList = savedBadges
+        .map((badgeData) => ChallengeBadges.fromMap(badgeData))
+        .toList();
+  } else {
+    // fallback if nothing is stored yet
+    final challenges = await buildChallengeBadges(elapsed);
+    finalBadgeList = List.generate(3, (index) {
+      if (index < challenges.length) {
+        return challenges[index];
+      } else {
+        return const ChallengeBadges(
+          tier: 1,
+          challenge: 'DEFAULT',
+          description: 'DEFAULT',
+          icon: Icons.add,
+        );
+      }
+    });
+  }
+
   if (!mounted) return;
 
   setState(() {
+    badgeList = finalBadgeList;
     userAccountLevel = levelData['level'];
     userTotalExp = totalExp;
     levelProgress = levelData['progress'];
   });
 }
 
+
+  Future<void> loadFriendsData() async {
+    final friends = await getUserFriendsData();
+    if (!mounted) return;
+    setState(() {
+      cachedFriends = friends;
+    });
+  }
+
+  Future<void> loadChallengeBadges() async {
+    final challenges = await buildChallengeBadges(elapsed);
+    await loadUserLevelAndProgress();
+    if (!mounted) return;
+
+    // Fill badgeList with either challenge or default icon if null
+    setState(() {
+      cachedChallenges = challenges;
+      badgeList = List.generate(3, (index) {
+        if (index < challenges.length) {
+          return challenges[index];
+        } else {
+          return const ChallengeBadges(
+            tier: 1,
+            challenge: 'DEFAULT',
+            description: 'DEFAULT',
+            icon: Icons.add,
+          );
+        }
+      });
+    });
+  }
+
+  Future<void> replaceChallengeDisplay(ChallengeBadges currentBadge) async {
+  final List<ChallengeBadges> options = List.from(badgeList);
+
+  final selectedIndex = await showDialog<int>(
+    context: context,
+    builder: (context) {
+      return Dialog(
+  backgroundColor: Colors.transparent,
+  child: SizedBox(
+    width: MediaQuery.of(context).size.width - 50, // Set your desired width here
+    child: BadgeDisplay(
+      badgeList: options,
+      pressable: true,
+      onBadgeSelected: (index, _) {
+        Navigator.pop(context, index);
+      },
+    ),
+  ),
+);
+    },
+  );
+
+  if (selectedIndex != null) {
+    setState(() {
+      badgeList[selectedIndex] = currentBadge;
+    });
+    await saveBadgeListToFirestore();
+  }
+}
+
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Challenge Tracker',
-          style: TextStyle(color: Colors.green),
-        ),
+        title: const Text('Challenge Tracker', style: TextStyle(color: Colors.green)),
         backgroundColor: colorScheme.onPrimary,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.green),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Center(
-            child: Column(
-              children: [
-                const SizedBox(height: 30),
-                levelBar(context, colorScheme),
-                const SizedBox(height: 30),
-                BadgeDisplay(badgeList: badgeList),
-                const SizedBox(height: 30),
-                friendsLeaderboard(context, colorScheme),
-                const SizedBox(height: 30),
-                challengesTab(context, colorScheme),
-                const SizedBox(height: 150),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-
-
-  Widget friendsLeaderboard(BuildContext context, ColorScheme colorScheme) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: getUserFriendsData(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final friends = snapshot.data ?? [];
-
-        return SizedBox(
-          width: MediaQuery.of(context).size.width - 50,
-          height: 200,
-          child: Container(
-            decoration: BoxDecoration(
-              color: colorScheme.onPrimary,
-              border: Border.all(color: Colors.green, width: 2),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 5,
-                  offset: Offset(2, 2),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Column(
-                    children: [
-                      Text(
-                        'Friends Leaderboard',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      for (int i = 0; i < friends.length && i < 5; i++)
-                        Text(
-                          '${i + 1}. ${friends[i]['name']}: Level ${friends[i]['accountLevel']}',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: friends[i]['isUser'] == true
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: friends[i]['isUser'] == true
-                                ? Colors.green
-                                : colorScheme.onSurface,
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget challengesTab(BuildContext context, ColorScheme colorScheme) {
-  return SizedBox(
-    width: MediaQuery.of(context).size.width - 50,
-    child: Container(
-      decoration: BoxDecoration(
-        color: colorScheme.onPrimary,
-        border: Border.all(color: Colors.green, width: 2),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 5,
-            offset: Offset(2, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 25),
           children: [
-            Center(
-              child: Text(
-                'Challenges',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.primary,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            FutureBuilder<List<ChallengeBadges>>(
-              future: buildChallengeBadges(), // your async badge builder
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const CircularProgressIndicator();
-                }
-
-                final challenges = snapshot.data ?? [];
-
-                return Column(
-                  children: challenges.map((challenge) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          formatBadgeImage(challenge, colorScheme),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  challenge.challenge,
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: challenge.tier != 0
-                                      ? Colors.green 
-                                      : colorScheme.onSurface, 
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  challenge.description,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color:
-                                        colorScheme.onSurface.withOpacity(0.7),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                LinearProgressIndicator(
-                                  value: 0.6,
-                                  backgroundColor: colorScheme.surface,
-                                  color: Colors.green,
-                                  minHeight: 8,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
+            userAccountLevel == 0
+                ? const Center(child: CircularProgressIndicator())
+                : levelBar(context, colorScheme, userAccountLevel, levelProgress),
+            const SizedBox(height: 30),
+            badgeList.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : BadgeDisplay(
+                    badgeList: badgeList,
+                    pressable: false,
+                  ),
+            const SizedBox(height: 30),
+            buildFriendsLeaderboard(colorScheme),
+            const SizedBox(height: 30),
+            buildChallengesTab(colorScheme),
+            const SizedBox(height: 150),
           ],
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
+  Widget buildFriendsLeaderboard(ColorScheme colorScheme) {
+    if (cachedFriends == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
- Widget levelBar(BuildContext context, ColorScheme colorScheme) {
-  int leftValue = userAccountLevel;
-  int rightValue = userAccountLevel + 1;
-
-  return SizedBox(
-    width: MediaQuery.of(context).size.width - 50,
-    height: 100,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+    return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colorScheme.onPrimary,
         border: Border.all(color: Colors.green, width: 2),
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 5,
-            offset: Offset(2, 2),
-          ),
-        ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
-          _circleWithText(leftValue, colorScheme),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: LinearProgressIndicator(
-                value: levelProgress,
-                minHeight: 20,
-                backgroundColor: Colors.grey[300],
-                color: Colors.green,
-                borderRadius: BorderRadius.circular(10),
+          Text('Friends Leaderboard', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green)),
+          const SizedBox(height: 16),
+          for (int i = 0; i < cachedFriends!.length && i < 5; i++)
+            Text(
+              '${i + 1}. ${cachedFriends![i]['name']}: Level ${cachedFriends![i]['accountLevel']}',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: cachedFriends![i]['isUser'] ? FontWeight.bold : FontWeight.normal,
+                color: cachedFriends![i]['isUser'] ? Colors.green : null,
               ),
             ),
-          ),
-          _circleWithText(rightValue, colorScheme),
         ],
       ),
-    ),
-  );
-}
-
-
-  Map<String, dynamic> accountLevelCalculator(int level, int exp) {
-  int accountLevelCap = 50 + ((level - 1) * 15);
-  int newLevel = level;
-  int remainingExp = exp;
-
-  while (remainingExp >= accountLevelCap) {
-    remainingExp -= accountLevelCap;
-    newLevel++;
-    accountLevelCap = 50 + ((newLevel - 1) * 15);
+    );
   }
-  
 
-  double progress = remainingExp / accountLevelCap;
+  Widget buildChallengesTab(ColorScheme colorScheme) {
+    if (cachedChallenges == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-  return {
-    'level': newLevel,
-    'progress': progress,
-    'xpCap': accountLevelCap,
-    'progressPercentage': (progress * 100).toStringAsFixed(1),
-  };
-}
-
-
-
-}
-
-Widget _circleWithText(int number, ColorScheme colorScheme) {
-  return Container(
-    width: 50,
-    height: 50,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      color: colorScheme.primary.withOpacity(0.2),
-      border: Border.all(color: Colors.green, width: 2),
-    ),
-    alignment: Alignment.center,
-    child: Text(
-      '$number',
-      style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Colors.green,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.onPrimary,
+        border: Border.all(color: Colors.green, width: 2),
+        borderRadius: BorderRadius.circular(12),
       ),
+      child: Column(
+        children: [
+          Text('Challenges', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green)),
+          const SizedBox(height: 16),
+          for (final challenge in cachedChallenges!)
+            InkWell(
+  onTap: () =>{ if(challenge.tier >=1) 
+  {replaceChallengeDisplay(challenge)},
+  },
+  child: Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      children: [
+        SizedBox(
+          width: 80,  // controls badge size container width
+          height: 80, // controls badge size container height
+          child: formatBadgeImage(challenge, colorScheme),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+             Text(
+              challenge.challenge,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: challenge.tier >= 1 ? Colors.green : colorScheme.onSurface,
+              ),
+            ),
+              const SizedBox(height: 4),
+              Text(challenge.description),
+            ],
+          ),
+        ),
+      ],
     ),
-  );
-}
+  ),
+)
 
-Widget formatBadgeImage(ChallengeBadges challenge, ColorScheme colorScheme) {
-  String imagePath;
-  switch (challenge.tier) {
-    case 3:
-      imagePath = 'images/TIER3.png';
-      break;
-    case 2:
-      imagePath = 'images/TIER2.png';
-      break;
-    default:
-      imagePath = 'images/TIER1.png';
-      break;
+        ],
+      ),
+    );
   }
+
+  Widget formatBadgeImage(ChallengeBadges challenge, ColorScheme colorScheme) {
+  final imagePath = imagePathForTier(challenge.tier);
 
   return Stack(
     alignment: Alignment.center,
     children: [
       Image.asset(
         imagePath,
-        width: 80,
-        height: 80,
+        width: 80,      // <-- This controls the background size
+        height: 80,     // <-- This controls the background size
         fit: BoxFit.contain,
         errorBuilder: (_, __, ___) =>
             const Icon(Icons.image_not_supported, size: 50),
       ),
       Icon(
         challenge.icon,
-        size: 45,
+        size: 40,       // <-- This controls the icon size
         color: colorScheme.onSurface,
       ),
     ],
   );
 }
 
+
+  String imagePathForTier(int tier) {
+    switch (tier) {
+      case 3:
+        return 'images/TIER3.png';
+      case 2:
+        return 'images/TIER2.png';
+      default:
+        return 'images/TIER1.png';
+    }
+  }
+
+  Map<String, dynamic> accountLevelCalculator(int level, int exp) {
+  int cap = 50 + ((level - 1) * 5);
+  int newLevel = level;
+  int remainingExp = exp;
+
+  while (remainingExp >= cap) {
+    remainingExp -= cap;
+    newLevel++;
+    cap = 50 + ((newLevel - 1) * 5);
+  }
+
+  return {
+    'level': newLevel,
+    'progress': remainingExp / cap,
+  };
+}
+
+
+  Widget levelBar(BuildContext context, ColorScheme colorScheme, int level, double progress) {
+    return Container(
+      height: 100,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: colorScheme.onPrimary,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green, width: 2),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          circleWithText(level),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 15,
+                color: Colors.green,
+                backgroundColor: colorScheme.surface,
+              ),
+            ),
+          ),
+          circleWithText(level + 1),
+        ],
+      ),
+    );
+  }
+
+  Widget circleWithText(int number) {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.green.withOpacity(0.1),
+        border: Border.all(color: Colors.green, width: 2),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '$number',
+        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+      ),
+    );
+  }
+}
+
+class BadgeDisplay extends StatelessWidget {
+  final List<ChallengeBadges> badgeList;
+  final bool pressable;
+  final void Function(int index, ChallengeBadges badge)? onBadgeSelected;
+
+  const BadgeDisplay({
+    super.key,
+    required this.badgeList,
+    required this.pressable,
+    this.onBadgeSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+  padding: const EdgeInsets.all(12),
+  decoration: BoxDecoration(
+    color: colorScheme.onPrimary, // Background color for the entire badge row
+    border: Border.all(color: Colors.green, width: 2), // Outline for the container
+    borderRadius: BorderRadius.circular(16),
+  ),
+  child: SizedBox(
+    height: 100,
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: List.generate(badgeList.length, (index) {
+        final badge = badgeList[index];
+
+        return InkWell(
+          onTap: pressable ? () => onBadgeSelected?.call(index, badge) : null,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Image.asset(
+                imagePathForTier(badge.tier),
+                width: 100,
+                height: 100,
+                fit: BoxFit.contain,
+              ),
+              Icon(badge.icon, size: 50, color: colorScheme.onSurface),
+            ],
+          ),
+        );
+      }),
+    ),
+  ),
+);
+
+
+  }
+
+  String imagePathForTier(int tier) {
+    switch (tier) {
+      case 3:
+        return 'images/TIER3.png';
+      case 2:
+        return 'images/TIER2.png';
+      default:
+        return 'images/TIER1.png';
+    }
+  }
+}
 class ChallengeBadges {
   final int tier;
   final String challenge;
   final String description;
   final IconData icon;
 
-  ChallengeBadges({
+  const ChallengeBadges({
     required this.tier,
     required this.challenge,
     required this.description,
     required this.icon,
   });
-}
-class BadgeDisplay extends StatelessWidget {
-  final List<ChallengeBadges> badgeList;
 
-  const BadgeDisplay({super.key, required this.badgeList});
+  Map<String, dynamic> toMap() {
+    return {
+      'tier': tier,
+      'challenge': challenge,
+      'description': description,
+      'iconCodePoint': icon.codePoint,
+      'iconFontFamily': icon.fontFamily,
+      'iconFontPackage': icon.fontPackage,
+      'iconDirection': icon.matchTextDirection,
+    };
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return SizedBox(
-      width: MediaQuery.of(context).size.width - 50,
-      height: 100,
-      child: Container(
-        decoration: BoxDecoration(
-          color: colorScheme.onPrimary,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.green, width: 2),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 5,
-              offset: Offset(2, 2),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: badgeList
-                .map((badge) => formatBadgeImage(badge, colorScheme))
-                .toList(),
-          ),
-        ),
+  factory ChallengeBadges.fromMap(Map<String, dynamic> map) {
+    return ChallengeBadges(
+      tier: map['tier'],
+      challenge: map['challenge'],
+      description: map['description'],
+      icon: IconData(
+        map['iconCodePoint'],
+        fontFamily: map['iconFontFamily'],
+        fontPackage: map['iconFontPackage'],
+        matchTextDirection: map['iconDirection'],
       ),
     );
   }
