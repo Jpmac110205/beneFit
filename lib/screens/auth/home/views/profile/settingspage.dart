@@ -14,7 +14,6 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  String _selectedOption = 'Lbs';
   bool _loadingTheme = true;
 
   @override
@@ -88,44 +87,10 @@ class _SettingsPageState extends State<SettingsPage> {
                     )
                   ],
                 ),
-                const SizedBox(height: 25),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Units', style: theme.textTheme.bodyMedium),
-                    DropdownButton<String>(
-                      value: _selectedOption,
-                      items: ['Lbs', 'Kgs']
-                          .map((value) => DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value, style: theme.textTheme.bodyMedium),
-                              ))
-                          .toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          _selectedOption = newValue!;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 25),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Share Profile', style: theme.textTheme.bodyMedium),
-                    IconButton(
-                      icon: Icon(Icons.share, color: theme.colorScheme.primary),
-                      onPressed: () {
-                        // share logic here
-                      },
-                    )
-                  ],
-                ),
                 const SizedBox(height: 50),
-                manageAccountButton(context),
-                const SizedBox(height: 25),
                 contactSupportButton(context),
+                const SizedBox(height: 25),
+                PrivacyPolicyButton(context),
               ],
             ),
           ),
@@ -195,6 +160,24 @@ Widget contactSupportButton(BuildContext context) {
     ),
     child: Text(
       'Contact Support',
+      style: theme.textTheme.bodyLarge?.copyWith(color: theme.textTheme.bodyLarge?.color),
+    ),
+  );
+}
+Widget PrivacyPolicyButton(BuildContext context) {
+  final theme = Theme.of(context);
+
+  return ElevatedButton(
+    onPressed: () {
+    },
+    style: ElevatedButton.styleFrom(
+      minimumSize: const Size(200, 50),
+      padding: const EdgeInsets.all(12),
+      backgroundColor: theme.cardColor,
+      side: BorderSide(color: theme.colorScheme.primary, width: 2),
+    ),
+    child: Text(
+      'Privacy Policy',
       style: theme.textTheme.bodyLarge?.copyWith(color: theme.textTheme.bodyLarge?.color),
     ),
   );

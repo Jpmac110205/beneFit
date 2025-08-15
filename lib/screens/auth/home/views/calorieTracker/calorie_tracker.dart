@@ -191,6 +191,13 @@ Future<void> loadAndComputeMacros() async {
                       color: colorScheme.onPrimary,
                       border: Border.all(color: colorScheme.primary, width: 2),
                       borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                      BoxShadow(
+                        color: colorScheme.primary,
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                     ),
                     child: Text(
                       'Protein: ${totalProtein.toStringAsFixed(1)}g  /  ${proteinGoal}g \n'
@@ -211,6 +218,13 @@ Future<void> loadAndComputeMacros() async {
                       color: colorScheme.onPrimary,
                       border: Border.all(color: colorScheme.primary, width: 2),
                       borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                      BoxShadow(
+                        color: colorScheme.primary,
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

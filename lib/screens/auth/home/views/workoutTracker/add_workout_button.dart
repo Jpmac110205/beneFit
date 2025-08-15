@@ -69,6 +69,13 @@ class _AddWorkoutButtonState extends State<AddWorkoutButton> {
               color: _isTapped ? colorScheme.onPrimary : colorScheme.primary,
               border: Border.all(color: colorScheme.primary, width: 2),
               borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: colorScheme.primary,
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             alignment: Alignment.center,
             child: Text(

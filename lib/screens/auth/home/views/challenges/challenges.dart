@@ -495,8 +495,11 @@ Future<int> levelingUp() async {
 
   final bool isPremium = userData['isPremium'] ?? false;
 
-  if (isPremium) currentTier = 3;
-  else currentTier = 0;
+  if (isPremium) {
+    currentTier = 3;
+  } else {
+    currentTier = 0;
+  }
 
   if (currentTier == 0) return 0;
 
@@ -570,12 +573,3 @@ Future<int> heavyLifter() async {
   return currentTier;
 }
 
-
-
-
-
-
-
-int socialButterfly() {
-  return 0;
-}

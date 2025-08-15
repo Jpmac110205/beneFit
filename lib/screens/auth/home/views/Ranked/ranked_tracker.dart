@@ -164,18 +164,7 @@ void dispose() {
 }
 
 
-  void _evaluateAllWorkouts() {
-    for (var workout in workouts) {
-      final result = evaluateRank(
-        liftWeight: workout.liftWeight,
-        reps: workout.reps,
-        bodyweight: workout.bodyWeight.toDouble(),
-        exercise: workout.workout,
-      );
-      workout.ranked = result['rank'];
-      workout.percentage = result['percentile'].toString();
-    }
-  }
+ 
 
   void animateToFinalRank(String finalRank) {
   if (isAnimating || currentDisplayRank == finalRank) return; 
@@ -337,6 +326,13 @@ void dispose() {
                   color: colorScheme.onPrimary,
                   border: Border.all(color: colorScheme.primary, width: 2),
                   borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.primary,
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,6 +380,13 @@ void dispose() {
                   color: colorScheme.onPrimary,
                   border: Border.all(color: Colors.green, width: 2),
                   borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.primary,
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: bmiList.asMap().entries.map((entry) {

@@ -100,7 +100,7 @@ class _SearchViewState extends State<SearchView> {
                             color: colorScheme.onPrimary,
                             boxShadow: [
                               BoxShadow(
-                                color: colorScheme.shadow.withOpacity(0.1),
+                                color: colorScheme.primary,
                                 blurRadius: 6,
                                 offset: const Offset(0, 3),
                               ),

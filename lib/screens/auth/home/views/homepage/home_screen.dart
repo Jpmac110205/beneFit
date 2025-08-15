@@ -1,18 +1,20 @@
 import 'dart:convert';
-
-import 'package:flutter/material.dart';
+import 'dart:ui';
+import 'package:flutter/material.dart' hide StepState;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:game/screens/auth/home/premium/muscle_predictor/muscle_predictor.dart';
 import 'package:game/screens/auth/home/views/challenges/challenges_home.dart';
 import 'package:game/screens/auth/widgets/circle.dart';
-import 'package:game/screens/auth/home/premium/ai/ai_assistant.dart';
 import 'package:game/screens/auth/home/views/workoutTracker/workout_tracker.dart';
 import 'package:game/screens/auth/home/views/Ranked/ranked_tracker.dart';
 import 'package:game/screens/auth/home/views/calorieTracker/calorie_tracker.dart';
 import 'package:game/screens/auth/home/views/friends/friends_list.dart';
 import 'package:game/screens/auth/home/views/profile/profile.dart';
+import 'package:game/screens/auth/home/views/homepage/daily_challenges.dart';
+
 import 'package:http/http.dart' as http;
+
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,11 +25,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 2;
-  
 
   late final PageController _pageController;
   late final List<GlobalKey> _buttonKeys;
-  List<double> _buttonCenters = [];
   final GlobalKey _navBarKey = GlobalKey();
 
   WorkoutStats? selectedWorkout;
@@ -37,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
       selectedWorkout = workout;
     });
   }
+  
 
   final List<IconData> icons = [
     Icons.emoji_events,
@@ -56,14 +57,18 @@ class _HomeScreenState extends State<HomeScreen> {
       _calculateButtonCenters();
     });
 
-    _pageController.addListener(() {
-      final page = _pageController.page?.round() ?? _currentIndex;
-      if (page != _currentIndex) {
-        setState(() {
-          _currentIndex = page;
-        });
-      }
+    _pageController.addListener(() async {
+  final page = _pageController.page?.round() ?? _currentIndex;
+
+  if (page != _currentIndex) {
+    setState(() {
+      _currentIndex = page;
     });
+
+    
+  }
+});
+
   }
 
   Future<void> warmUpFoodApi() async {
@@ -113,9 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
   centers.add(centerX);
 }
 
-    setState(() {
-      _buttonCenters = centers;
-    });
+
   }
 
   @override
@@ -127,6 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
 
     final screens = [
       const RankedScreen(),
@@ -134,6 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
       HomeContentScreen(
         selectedWorkout: selectedWorkout,
         onWorkoutSelected: setSelectedWorkout,
+
       ),
       const WorkoutTrackerScreen(),
       const CalorieTrackerScreen(),
@@ -167,12 +172,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     child: CircularIconButton(
                       icon: Icons.person,
-                      size: 80.0,
+                      size: 70.0,
                       iconSize: 40.0,
                       iconColor: theme.iconTheme.color!,
                       borderColor: Colors.green,
                       borderWidth: 2.0,
-                      backgroundColor: theme.colorScheme.surface,
+                      backgroundColor: theme.colorScheme.onPrimary,
                     ),
                   ),
                   GestureDetector(
@@ -185,101 +190,86 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     child: CircularIconButton(
                       icon: Icons.group,
-                      size: 80.0,
+                      size: 70.0,
                       iconSize: 40.0,
                       iconColor: theme.iconTheme.color!,
                       borderColor: Colors.green,
                       borderWidth: 2.0,
-                      backgroundColor: theme.colorScheme.surface,
+                      backgroundColor: theme.colorScheme.onPrimary,
                     ),
                   ),
                 ],
               ),
             ),
             Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final maxWidth = constraints.maxWidth;
-                  final buttonCount = icons.length;
-                  const maxButtonSize = 80.0;
-                  const minButtonSize = 50.0;
-                  const spacing = 12.0;
-                  final totalSpacing = spacing * (buttonCount - 1);
-                  final availableWidth = maxWidth - totalSpacing;
-                  double buttonSize = availableWidth / buttonCount;
-
-                  if (buttonSize > maxButtonSize) buttonSize = maxButtonSize;
-                  if (buttonSize < minButtonSize) buttonSize = minButtonSize;
-
-                  return Container(
-                    key: _navBarKey,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      border: Border.all(color: Colors.green, width: 2),
-                    ),
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                    child: SizedBox(
-                      height: buttonSize + 40,
-                      child: Stack(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: List.generate(buttonCount, (index) {
-                              return GestureDetector(
-                                key: _buttonKeys[index],
-                                onTap: () {
-                                  _pageController.animateToPage(
-                                    index,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeInOut,
-                                  );
-                                  setState(() => _currentIndex = index);
-                                },
-                                child: CircularIconButton(
-                                  icon: icons[index],
-                                  size: buttonSize,
-                                  iconSize: buttonSize * 0.5,
-                                  iconColor: _currentIndex == index
-                                      ? Colors.green
-                                      : theme.iconTheme.color!,
-                                  borderColor: Colors.green,
-                                  borderWidth: 2.0,
-                                  iconOffset: index == 3
-                                      ? Offset(-buttonSize * 0.06, 0)
-                                      : Offset.zero,
-                                  backgroundColor: _currentIndex == index
-                                      ? theme.colorScheme.surface
-                                      : Colors.transparent,
-                                ),
-                              );
-                            }),
+          bottom: 20, // lifted a bit for floating look
+          left: 20,
+          right: 20,
+          child: Container(
+            key: _navBarKey,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.green,
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(30),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                  color: colorScheme.onPrimary,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: List.generate(icons.length, (index) {
+                      final isSelected = _currentIndex == index;
+                      return GestureDetector(
+                        key: _buttonKeys[index],
+                        onTap: () {
+                          _pageController.animateToPage(
+                            index,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                          setState(() => _currentIndex = index);
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Colors.green.withOpacity(0.2)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.green.withOpacity(0.4),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ]
+                                : [],
                           ),
-                          if (_buttonCenters.length == icons.length)
-                            AnimatedPositioned(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
-                              bottom: 12,
-                              left: _buttonCenters[_currentIndex] - 3.5,
-                              child: Container(
-                                width: 7,
-                                height: 7,
-                                decoration: BoxDecoration(
-                                  color: theme.iconTheme.color,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+                          child: Icon(
+                            icons[index],
+                            size: isSelected ? 30 : 26,
+                            color: isSelected ? Colors.green : colorScheme.onSurface,
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
               ),
             ),
+          ),
+        ),
           ],
         ),
       ),
@@ -287,112 +277,3 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class HomeContentScreen extends StatelessWidget {
-  final WorkoutStats? selectedWorkout;
-  final void Function(WorkoutStats)? onWorkoutSelected;
-
-  const HomeContentScreen({
-    super.key,
-    required this.selectedWorkout,
-    this.onWorkoutSelected,
-  });
-  
-
-  @override
-  Widget build(BuildContext context) {
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-
-        final maxWidth = constraints.maxWidth;
-        final boxMaxWidth = maxWidth * 0.9 > 400 ? 400.0 : maxWidth * 0.9;
-        final halfBoxMaxWidth = (boxMaxWidth - 20) / 2;
-
-        return SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: boxMaxWidth,
-                    maxHeight: 250,
-                  ),
-                  child: Image.asset(
-                    'images/d2.png',
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) =>
-                        const Icon(Icons.image_not_supported, size: 100),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  AiAssistant(), 
-                  SizedBox(width: 30),
-                  MusclePredictor(),
-                ],
-              ),
-
-                const SizedBox(height: 30),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: _buildBox(context, 'Daily Challenges',
-                          width: halfBoxMaxWidth),
-                    ),
-                    const SizedBox(width: 20),
-                    Flexible(
-                      child: _buildBox(context, 'Steps Tracker',
-                          width: halfBoxMaxWidth),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 30),
-                _buildBox(context, 'Macro Specific Bar Graphs',
-                    width: boxMaxWidth),
-                    SizedBox(height: 30),
-                
-                SizedBox(height: 150),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildBox(BuildContext context, String text, {required double width}) {
-    final theme = Theme.of(context);
-
-    return Container(
-      constraints: const BoxConstraints(minHeight: 250),
-      width: width,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.onPrimary,
-        border: Border.all(color: Colors.green),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Center(
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style:
-              theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
-  }
-}

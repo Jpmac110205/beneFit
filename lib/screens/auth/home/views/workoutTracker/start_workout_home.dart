@@ -318,6 +318,7 @@ Future<int> findTotalVolume() async {
                 itemBuilder: (context, exerciseIndex) {
                   final exercise = exercises[exerciseIndex];
                   return Card(
+                    color: colorScheme.onPrimary,
                     margin: const EdgeInsets.symmetric(vertical: 8.0),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

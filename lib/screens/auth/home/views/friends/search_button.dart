@@ -65,6 +65,13 @@ class _SearchModalSheet extends StatelessWidget {
           decoration: BoxDecoration(
             color: colorScheme.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+            BoxShadow(
+              color: colorScheme.primary,
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
           ),
           child: const SearchView(), // Your full-screen search view
         );

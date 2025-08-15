@@ -20,9 +20,6 @@ class _ManageAccountState extends State<ManageAccount> {
 
     setState(() => _isLoading = true);
 
-    final username = _usernameController.text;
-    final currentPassword = _currentPasswordController.text;
-    final newPassword = _newPasswordController.text;
 
     try {
       // TODO: Implement backend call here

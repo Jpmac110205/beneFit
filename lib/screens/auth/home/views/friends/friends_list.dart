@@ -1,8 +1,8 @@
 import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:game/screens/auth/home/views/challenges/challenges_home.dart';
 import 'package:game/screens/auth/home/views/friends/friends_list_model.dart';
 import 'package:game/screens/auth/home/views/friends/incoming_request_button.dart';
 import 'package:game/screens/auth/home/views/friends/search_button.dart';
@@ -16,9 +16,15 @@ class FriendsListScreen extends StatefulWidget {
 
 class _FriendsListScreenState extends State<FriendsListScreen> {
   List<FriendsList> confirmedFriends = [];
-
   bool _isLoading = true;
   StreamSubscription<DocumentSnapshot>? _userSubscription;
+
+  // Friend badges cache
+  final Map<String, List<ChallengeBadges>> _friendsBadges = {};
+  final Set<String> _loadingBadgesFor = {};
+
+  // Track expanded card
+  int? _expandedIndex;
 
   @override
   void initState() {
@@ -44,7 +50,8 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
 
         final data = snapshot.data()!;
         final List<dynamic> rawFriends = data['friends'] ?? [];
-        final List<String> friendsList = List<String>.from(rawFriends.whereType<String>());
+        final List<String> friendsList =
+            List<String>.from(rawFriends.whereType<String>());
 
         final uniqueFriends = friendsList.toSet().toList();
 
@@ -93,6 +100,32 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
     );
   }
 
+  Future<void> _fetchFriendBadges(String friendId) async {
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(friendId).get();
+
+      if (doc.exists) {
+        final data = doc.data()!;
+        final List<dynamic>? savedBadges = data['savedBadges'];
+        List<ChallengeBadges> finalBadgeList;
+
+        if (savedBadges != null && savedBadges.isNotEmpty) {
+          finalBadgeList = savedBadges
+              .map((badgeData) => ChallengeBadges.fromMap(badgeData))
+              .toList();
+        } else {
+          finalBadgeList = [];
+        }
+
+        setState(() {
+          _friendsBadges[friendId] = finalBadgeList;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching friend badges: $e');
+    }
+  }
+
   @override
   void dispose() {
     _userSubscription?.cancel();
@@ -104,7 +137,6 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    // Sort friends: active first
     confirmedFriends.sort((a, b) {
       if (a.isActive && !b.isActive) return -1;
       if (!a.isActive && b.isActive) return 1;
@@ -116,7 +148,6 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
         title: Text(
           'Friends List',
           style: TextStyle(color: colorScheme.primary),
-          
         ),
         backgroundColor: colorScheme.onPrimary,
         elevation: 0,
@@ -150,86 +181,140 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                             itemCount: confirmedFriends.length,
                             itemBuilder: (context, index) {
                               final friend = confirmedFriends[index];
-                              return Container(
-                                margin: const EdgeInsets.symmetric(vertical: 8),
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: colorScheme.primary, width: 2),
-                                  borderRadius: BorderRadius.circular(12),
-                                  color: colorScheme.onPrimary,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: colorScheme.shadow.withOpacity(0.1),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    // Friend info column
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          friend.name,
-                                          style: theme.textTheme.titleMedium?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            color: colorScheme.onSurface,
+                              final isExpanded = _expandedIndex == index;
+
+                              return GestureDetector(
+                                onTap: () async {
+                                  setState(() {
+                                    _expandedIndex = isExpanded ? null : index;
+                                  });
+
+                                  if (!isExpanded &&
+                                      !_friendsBadges.containsKey(friend.uid) &&
+                                      !_loadingBadgesFor.contains(friend.uid)) {
+                                    setState(() {
+                                      _loadingBadgesFor.add(friend.uid);
+                                    });
+                                    await _fetchFriendBadges(friend.uid);
+                                    setState(() {
+                                      _loadingBadgesFor.remove(friend.uid);
+                                    });
+                                  }
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
+                                  margin: const EdgeInsets.symmetric(vertical: 8),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: colorScheme.primary, width: 2),
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: colorScheme.onPrimary,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: colorScheme.primary,
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Friend info row
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                friend.name,
+                                                style: theme.textTheme.titleMedium?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: colorScheme.onSurface,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                '@${friend.username}',
+                                                style: theme.textTheme.bodySmall?.copyWith(
+                                                  color: colorScheme.onSurfaceVariant,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                friend.isActive
+                                                    ? 'Active Now'
+                                                    : 'Last Active: ${DateTime.now().difference(friend.lastActive).inHours} hours ago',
+                                                style: theme.textTheme.bodySmall?.copyWith(
+                                                  color: colorScheme.outline,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '@${friend.username}',
-                                          style: theme.textTheme.bodySmall?.copyWith(
-                                            color: colorScheme.onSurfaceVariant,
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                friend.isActive ? Icons.check_circle : Icons.cancel,
+                                                color: friend.isActive
+                                                    ? colorScheme.primary
+                                                    : colorScheme.outline,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Icon(
+                                                Icons.local_fire_department,
+                                                color: friend.streak >= 100
+                                                    ? Colors.blue
+                                                    : friend.streak >= 50
+                                                        ? Colors.purple
+                                                        : friend.streak >= 20
+                                                            ? Colors.red
+                                                            : friend.streak > 1
+                                                                ? Colors.orange
+                                                                : friend.streak == 1
+                                                                    ? Colors.yellow
+                                                                    : colorScheme.outline,
+                                                size: 20,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '${friend.streak}',
+                                                style: theme.textTheme.titleMedium?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: colorScheme.onSurface,
+                                                ),
+                                              ),
+                                            ],
                                           ),
+                                        ],
+                                      ),
+
+                                      // Expanded content
+                                      AnimatedCrossFade(
+                                        firstChild: const SizedBox.shrink(),
+                                        secondChild: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const SizedBox(height: 12),
+                                            Divider(color: colorScheme.primary),
+                                            const SizedBox(height: 8),
+                                            if (_loadingBadgesFor.contains(friend.uid))
+                                              Center(child: CircularProgressIndicator(color: colorScheme.primary))
+                                            else
+                                              BadgeDisplay(
+                                                badgeList: _friendsBadges[friend.uid] ?? [],
+                                                pressable: false,
+                                              ),
+                                          ],
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          friend.isActive
-                                              ? 'Active Now'
-                                              : 'Last Active: ${DateTime.now().difference(friend.lastActive).inHours} hours ago',
-                                          style: theme.textTheme.bodySmall?.copyWith(
-                                            color: colorScheme.outline,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          friend.isActive ? Icons.check_circle : Icons.cancel,
-                                          color: friend.isActive ? colorScheme.primary : colorScheme.outline,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Icon(
-                                          Icons.local_fire_department,
-                                          color: friend.streak >= 100
-                                              ? Colors.blue
-                                              : friend.streak >= 50
-                                                  ? Colors.purple
-                                                  : friend.streak >= 20
-                                                      ? Colors.red
-                                                      : friend.streak > 1
-                                                          ? Colors.orange
-                                                          : friend.streak == 1
-                                                              ? Colors.yellow
-                                                              : colorScheme.outline,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '${friend.streak}',
-                                          style: theme.textTheme.titleMedium?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            color: colorScheme.onSurface,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                        crossFadeState: isExpanded
+                                            ? CrossFadeState.showSecond
+                                            : CrossFadeState.showFirst,
+                                        duration: const Duration(milliseconds: 300),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               );
                             },

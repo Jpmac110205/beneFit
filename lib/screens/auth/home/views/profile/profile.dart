@@ -152,6 +152,13 @@ class _ProfileWidget extends State<Profile> {
         border: Border.all(color: colorScheme.primary),
         borderRadius: BorderRadius.circular(8),
         color: colorScheme.onPrimary,
+        boxShadow: [
+        BoxShadow(
+          color: colorScheme.primary,
+          blurRadius: 6,
+          offset: const Offset(0, 3),
+        ),
+      ],
       ),
       child: Row(
         children: [

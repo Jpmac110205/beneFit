@@ -30,6 +30,7 @@ class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
   void initState() {
     super.initState();
     loadWorkouts();
+     updateAllWorkoutsDaysSinceLast();
   }
 
   // Load workouts from Firestore
@@ -38,6 +39,7 @@ class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
 
   final user = _auth.currentUser;
   if (user == null) {
+    
     if (!mounted) return;
     setState(() => isLoading = false);
     return;
@@ -131,11 +133,12 @@ class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
   setState(() {
     updatedWorkout.timesCompleted++;
     updatedWorkout.daysSinceLast = 0;
+    updatedWorkout.lastCompletedDate = DateTime.now(); // <-- reset date
   });
 
   saveWorkout(updatedWorkout);
 
-  if (!mounted) return; // If this fires after dispose
+  if (!mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Text(
@@ -144,6 +147,47 @@ class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
     ),
   );
 }
+
+Future<void> updateAllWorkoutsDaysSinceLast() async {
+  final user = _auth.currentUser;
+  if (user == null) return;
+
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+
+  final snapshot = await _firestore
+      .collection('users')
+      .doc(user.uid)
+      .collection('workouts')
+      .get();
+
+  for (final doc in snapshot.docs) {
+    final data = doc.data();
+
+    final lastCompleted = data['lastCompletedDate'] != null
+        ? (data['lastCompletedDate'] as Timestamp).toDate()
+        : null;
+
+    int newDaysSinceLast = data['daysSinceLast'] ?? 0;
+
+    if (lastCompleted == null) {
+      newDaysSinceLast += 1; // never completed before
+    } else {
+      final lastDate = DateTime(lastCompleted.year, lastCompleted.month, lastCompleted.day);
+      if (lastDate.isBefore(today)) {
+        final daysDiff = today.difference(lastDate).inDays;
+        newDaysSinceLast = daysDiff;
+      } else {
+        newDaysSinceLast = 0;
+      }
+    }
+
+    await doc.reference.update({
+      'daysSinceLast': newDaysSinceLast,
+    });
+  }
+}
+
 
 
   // Show dialog to edit or delete workout
@@ -189,6 +233,7 @@ class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
             TextButton(
               onPressed: () async {
                 await deleteWorkout(workouts[index]);
+                if (!mounted) return;
                 setState(() {
                   workouts.removeAt(index);
                 });
@@ -254,9 +299,9 @@ class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
                         color: colorScheme.onPrimary,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
+                            color: colorScheme.primary,
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
                           ),
                         ],
                       ),
@@ -320,6 +365,11 @@ class _WorkoutTrackerScreenState extends State<WorkoutTrackerScreen> {
       ),
     );
   }
+   @override
+void dispose() {
+  // Add any future timers or controllers here
+  super.dispose();
+}
 }
 
 // WorkoutStats model class
@@ -329,6 +379,7 @@ class WorkoutStats {
   String description;
   int timesCompleted;
   int daysSinceLast;
+  DateTime? lastCompletedDate; // <-- NEW
   List<Exercise> exercises;
 
   WorkoutStats({
@@ -337,20 +388,20 @@ class WorkoutStats {
     required this.description,
     required this.timesCompleted,
     required this.daysSinceLast,
+    this.lastCompletedDate,
     required this.exercises,
   });
 
   factory WorkoutStats.fromMap(Map<String, dynamic> map, String id) {
-    if (map['name'] == null || map['description'] == null) {
-      throw const FormatException('Missing required fields in workout map');
-    }
-
     return WorkoutStats(
       id: id,
-      name: map['name'],
-      description: map['description'],
+      name: map['name'] ?? '',
+      description: map['description'] ?? '',
       timesCompleted: map['timesCompleted'] ?? 0,
       daysSinceLast: map['daysSinceLast'] ?? 0,
+      lastCompletedDate: map['lastCompletedDate'] != null
+          ? (map['lastCompletedDate'] as Timestamp).toDate()
+          : null,
       exercises: (map['exercises'] as List<dynamic>? ?? [])
           .map((e) => Exercise.fromMap(e))
           .toList(),
@@ -363,7 +414,9 @@ class WorkoutStats {
       'description': description,
       'timesCompleted': timesCompleted,
       'daysSinceLast': daysSinceLast,
+      'lastCompletedDate': lastCompletedDate,
       'exercises': exercises.map((e) => e.toMap()).toList(),
     };
   }
 }
+

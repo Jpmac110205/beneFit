@@ -51,6 +51,13 @@ class _AddFoodButtonState extends State<AddFoodButton> {
           color: _isTapped ? inactiveBackgroundColor : activeBackgroundColor,
           border: Border.all(color: activeBorderColor, width: 2),
           borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary,
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
         ),
         alignment: Alignment.center,
         child: Text(
@@ -83,6 +90,13 @@ class _AddFoodModalSheet extends StatelessWidget {
           decoration: BoxDecoration(
             color: colorScheme.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+            BoxShadow(
+              color: colorScheme.primary,
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
           ),
           child: const AddFoodSearchScreen(),
         );

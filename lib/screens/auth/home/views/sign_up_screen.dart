@@ -22,6 +22,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool obscurePassword = true;
   bool signUpRequired = false;
 
+  // New privacy policy checkbox state
+  bool agreedToPolicy = false;
+
   bool containsUpperCase = false;
   bool containsLowerCase = false;
   bool containsNumber = false;
@@ -63,15 +66,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         width: MediaQuery.of(context).size.width * 0.9,
                         child: MyTextField(
                           controller: emailController,
-                          style: TextStyle(color: Colors.black),
+                          style: const TextStyle(color: Colors.black),
                           hintText: 'Email',
                           obscureText: false,
                           keyboardType: TextInputType.emailAddress,
-                          prefixIcon: const Icon(CupertinoIcons.mail_solid, color: Colors.black),
+                          prefixIcon: const Icon(
+                            CupertinoIcons.mail_solid,
+                            color: Colors.black,
+                          ),
                           validator: (val) {
                             if (val!.isEmpty) {
                               return 'Please fill in this field';
-                            } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                            } else if (!RegExp(
+                                    r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                                 .hasMatch(val)) {
                               return 'Please enter a valid email';
                             }
@@ -84,17 +91,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         width: MediaQuery.of(context).size.width * 0.9,
                         child: MyTextField(
                           controller: usernameController,
-                          style: TextStyle(color: Colors.black),
+                          style: const TextStyle(color: Colors.black),
                           hintText: 'Username',
                           obscureText: false,
                           keyboardType: TextInputType.text,
-                          prefixIcon: const Icon(CupertinoIcons.person_crop_circle, color: Colors.black),
+                          prefixIcon: const Icon(
+                            CupertinoIcons.person_crop_circle,
+                            color: Colors.black,
+                          ),
                           validator: (val) {
                             if (val == null || val.isEmpty) {
                               return 'Please choose a username';
                             } else if (val.length < 3 || val.length > 20) {
                               return 'Username must be 3–20 characters';
-                            } else if (!RegExp(r'^[a-zA-Z0-9_.]+$').hasMatch(val)) {
+                            } else if (!RegExp(r'^[a-zA-Z0-9_.]+$')
+                                .hasMatch(val)) {
                               return 'Only letters, numbers, _ or . allowed';
                             }
                             return null;
@@ -106,69 +117,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         width: MediaQuery.of(context).size.width * 0.9,
                         child: MyTextField(
                           controller: passwordController,
-                          style: TextStyle(color: Colors.black),
+                          style: const TextStyle(color: Colors.black),
                           hintText: 'Password',
                           obscureText: obscurePassword,
                           keyboardType: TextInputType.visiblePassword,
-                          prefixIcon: const Icon(CupertinoIcons.lock_fill, color: Colors.black),
+                          prefixIcon: const Icon(
+                            CupertinoIcons.lock_fill,
+                            color: Colors.black,
+                          ),
                           onChanged: (val) {
-                            if (val.contains(RegExp(r'[A-Z]'))) {
-                              setState(() {
-                                containsUpperCase = true;
-                              });
-                            } else {
-                              setState(() {
-                                containsUpperCase = false;
-                              });
-                            }
-                            if (val.contains(RegExp(r'[a-z]'))) {
-                              setState(() {
-                                containsLowerCase = true;
-                              });
-                            } else {
-                              setState(() {
-                                containsLowerCase = false;
-                              });
-                            }
-                            if (val.contains(RegExp(r'[0-9]'))) {
-                              setState(() {
-                                containsNumber = true;
-                              });
-                            } else {
-                              setState(() {
-                                containsNumber = false;
-                              });
-                            }
-                            if (val.contains(RegExp(
-                                r'^(?=.*?[!@#$&*~`)\%\-(_+=;:,.<>/?"[{\]}\|^])'))) {
-                              setState(() {
-                                containsSpecialChar = true;
-                              });
-                            } else {
-                              setState(() {
-                                containsSpecialChar = false;
-                              });
-                            }
-                            if (val.length >= 8) {
-                              setState(() {
-                                contains8Length = true;
-                              });
-                            } else {
-                              setState(() {
-                                contains8Length = false;
-                              });
-                            }
-                            return;
+                            setState(() {
+                              containsUpperCase =
+                                  val.contains(RegExp(r'[A-Z]'));
+                              containsLowerCase =
+                                  val.contains(RegExp(r'[a-z]'));
+                              containsNumber = val.contains(RegExp(r'[0-9]'));
+                              containsSpecialChar = val.contains(RegExp(
+                                  r'[!@#$&*~`)%\-(_+=;:,.<>/?"[{\]}\|^]'));
+                              contains8Length = val.length >= 8;
+                            });
                           },
                           suffixIcon: IconButton(
                             onPressed: () {
                               setState(() {
                                 obscurePassword = !obscurePassword;
-                                if (obscurePassword) {
-                                  iconPassword = CupertinoIcons.eye_fill;
-                                } else {
-                                  iconPassword = CupertinoIcons.eye_slash_fill;
-                                }
+                                iconPassword = obscurePassword
+                                    ? CupertinoIcons.eye_fill
+                                    : CupertinoIcons.eye_slash_fill;
                               });
                             },
                             icon: Icon(iconPassword),
@@ -177,7 +152,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             if (val!.isEmpty) {
                               return 'Please fill in this field';
                             } else if (!RegExp(
-                                    r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~`)\%\-(_+=;:,.<>/?"[{\]}\|^]).{8,}$')
+                                    r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~`)%\-(_+=;:,.<>/?"[{\]}\|^]).{8,}$')
                                 .hasMatch(val)) {
                               return 'Please enter a valid password';
                             }
@@ -196,23 +171,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               Text(
                                 "⚈  1 uppercase",
                                 style: TextStyle(
-                                    color: containsUpperCase
-                                        ? Colors.green
-                                        : Theme.of(context).colorScheme.onSurface),
+                                  color: containsUpperCase
+                                      ? Colors.green
+                                      : colorScheme.onSurface,
+                                ),
                               ),
                               Text(
                                 "⚈  1 lowercase",
                                 style: TextStyle(
-                                    color: containsLowerCase
-                                        ? Colors.green
-                                        : Theme.of(context).colorScheme.onSurface),
+                                  color: containsLowerCase
+                                      ? Colors.green
+                                      : colorScheme.onSurface,
+                                ),
                               ),
                               Text(
                                 "⚈  1 number",
                                 style: TextStyle(
-                                    color: containsNumber
-                                        ? Colors.green
-                                        : Theme.of(context).colorScheme.onSurface),
+                                  color: containsNumber
+                                      ? Colors.green
+                                      : colorScheme.onSurface,
+                                ),
                               ),
                             ],
                           ),
@@ -222,16 +200,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               Text(
                                 "⚈  1 special character",
                                 style: TextStyle(
-                                    color: containsSpecialChar
-                                        ? Colors.green
-                                        : Theme.of(context).colorScheme.onSurface),
+                                  color: containsSpecialChar
+                                      ? Colors.green
+                                      : colorScheme.onSurface,
+                                ),
                               ),
                               Text(
                                 "⚈  8 minimum characters",
                                 style: TextStyle(
-                                    color: contains8Length
-                                        ? Colors.green
-                                        : Theme.of(context).colorScheme.onSurface),
+                                  color: contains8Length
+                                      ? Colors.green
+                                      : colorScheme.onSurface,
+                                ),
                               ),
                             ],
                           ),
@@ -241,12 +221,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       SizedBox(
                         width: MediaQuery.of(context).size.width * 0.9,
                         child: MyTextField(
-                          style: TextStyle(color: Colors.black),
+                          style: const TextStyle(color: Colors.black),
                           controller: nameController,
                           hintText: 'Name',
                           obscureText: false,
                           keyboardType: TextInputType.name,
-                          prefixIcon: const Icon(CupertinoIcons.person_fill, color: Colors.black),
+                          prefixIcon: const Icon(
+                            CupertinoIcons.person_fill,
+                            color: Colors.black,
+                          ),
                           validator: (val) {
                             if (val!.isEmpty) {
                               return 'Please fill in this field';
@@ -257,46 +240,82 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           },
                         ),
                       ),
+                      const SizedBox(height: 10),
+
+                      // Privacy Policy Checkbox
+                      CheckboxListTile(
+                        value: agreedToPolicy,
+                        onChanged: (value) {
+                          setState(() {
+                            agreedToPolicy = value ?? false;
+                          });
+                        },
+                        controlAffinity: ListTileControlAffinity.leading,
+                        title: Row(
+                          children: [
+                            const Text("I agree to the "),
+                            GestureDetector(
+                              onTap: () {
+                                // TODO: Open privacy policy page or external link
+                              },
+                              child: const Text(
+                                "Privacy Policy",
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                       SizedBox(height: MediaQuery.of(context).size.height * 0.02),
                       !signUpRequired
                           ? SizedBox(
                               width: MediaQuery.of(context).size.width * 0.5,
                               child: TextButton(
-                                onPressed: () {
-                                  if (_formKey.currentState!.validate()) {
-                                    MyUser myUser = MyUser.empty;
-                                    myUser.email = emailController.text;
-                                    myUser.name = nameController.text;
-                                    myUser.username = usernameController.text.toLowerCase();
+                                onPressed: agreedToPolicy
+                                    ? () {
+                                        if (_formKey.currentState!.validate()) {
+                                          MyUser myUser = MyUser.empty;
+                                          myUser.email = emailController.text;
+                                          myUser.name = nameController.text;
+                                          myUser.username =
+                                              usernameController.text.toLowerCase();
 
-                                    setState(() {
-                                      context.read<SignUpBloc>().add(
-                                            SignUpRequired(
-                                              myUser,
-                                              passwordController.text,
-                                            ),
-                                          );
-                                    });
-                                  }
-                                },
+                                          setState(() {
+                                            context.read<SignUpBloc>().add(
+                                                  SignUpRequired(
+                                                    myUser,
+                                                    passwordController.text,
+                                                  ),
+                                                );
+                                          });
+                                        }
+                                      }
+                                    : null,
                                 style: TextButton.styleFrom(
-                                    elevation: 3.0,
-                                    backgroundColor:
-                                        Theme.of(context).colorScheme.primary,
-                                    foregroundColor: colorScheme.onPrimary,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(60))),
-                                child:  Padding(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 25, vertical: 5),
-                                  child: Text(
-                                    'Sign Up',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                        color: colorScheme.onPrimary,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600),
+                                  elevation: 3.0,
+                                  backgroundColor: Theme.of(context).colorScheme.primary,
+                                  foregroundColor: colorScheme.onPrimary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(60),
                                   ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 25, vertical: 5),
+
+                                      child: Text(
+                                        'Sign Up',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: colorScheme.onPrimary,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                 ),
                               ),
                             )
@@ -305,16 +324,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
 
                   // Image at the bottom
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: Image.asset(
-                      'images/A.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.image_not_supported, size: 100),
-                      height: 100,
-                    ),
-                  ),
                 ],
               ),
             ),

@@ -220,6 +220,13 @@ class _ChallengesHomeState extends State<ChallengesHome> {
         color: colorScheme.onPrimary,
         border: Border.all(color: Colors.green, width: 2),
         borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+      BoxShadow(
+        color: colorScheme.primary,
+        blurRadius: 6,
+        offset: const Offset(0, 3),
+      ),
+    ],
       ),
       child: Column(
         children: [
@@ -245,56 +252,81 @@ class _ChallengesHomeState extends State<ChallengesHome> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.onPrimary,
-        border: Border.all(color: Colors.green, width: 2),
-        borderRadius: BorderRadius.circular(12),
+  padding: const EdgeInsets.all(16),
+  decoration: BoxDecoration(
+    color: colorScheme.onPrimary,
+    border: Border.all(color: Colors.green, width: 2),
+    borderRadius: BorderRadius.circular(12),
+    boxShadow: [
+      BoxShadow(
+        color: colorScheme.primary,
+        blurRadius: 6,
+        offset: const Offset(0, 3),
       ),
-      child: Column(
-        children: [
-          Text('Challenges', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green)),
-          const SizedBox(height: 16),
-          for (final challenge in cachedChallenges!)
-            InkWell(
-  onTap: () =>{ if(challenge.tier >=1) 
-  {replaceChallengeDisplay(challenge)},
-  },
-  child: Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Row(
-      children: [
-        SizedBox(
-          width: 80,  // controls badge size container width
-          height: 80, // controls badge size container height
-          child: formatBadgeImage(challenge, colorScheme),
+    ],
+  ),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'Challenges',
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: Colors.green,
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-             Text(
-              challenge.challenge,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: challenge.tier >= 1 ? Colors.green : colorScheme.onSurface,
-              ),
+      ),
+      const SizedBox(height: 16),
+
+      for (final challenge in cachedChallenges!)
+        InkWell(
+          onTap: () {
+            if (challenge.tier >= 1) {
+              replaceChallengeDisplay(challenge);
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 80,
+                  height: 80,
+                  child: formatBadgeImage(challenge, colorScheme),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        challenge.challenge,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: challenge.tier >= 1
+                              ? Colors.green
+                              : colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        challenge.description,
+                        style: TextStyle(
+                          color: colorScheme.onSurface.withOpacity(0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-              const SizedBox(height: 4),
-              Text(challenge.description),
-            ],
           ),
         ),
-      ],
-    ),
+    ],
   ),
-)
+);
 
-        ],
-      ),
-    );
   }
 
   Widget formatBadgeImage(ChallengeBadges challenge, ColorScheme colorScheme) {
@@ -358,6 +390,13 @@ class _ChallengesHomeState extends State<ChallengesHome> {
         color: colorScheme.onPrimary,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.green, width: 2),
+        boxShadow: [
+      BoxShadow(
+        color: colorScheme.primary,
+        blurRadius: 6,
+        offset: const Offset(0, 3),
+      ),
+    ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -389,6 +428,7 @@ class _ChallengesHomeState extends State<ChallengesHome> {
         color: Colors.green.withOpacity(0.1),
         border: Border.all(color: Colors.green, width: 2),
       ),
+      
       alignment: Alignment.center,
       child: Text(
         '$number',
@@ -414,41 +454,59 @@ class BadgeDisplay extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
-  padding: const EdgeInsets.all(12),
-  decoration: BoxDecoration(
-    color: colorScheme.onPrimary, // Background color for the entire badge row
-    border: Border.all(color: Colors.green, width: 2), // Outline for the container
-    borderRadius: BorderRadius.circular(16),
-  ),
-  child: SizedBox(
-    height: 100,
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: List.generate(badgeList.length, (index) {
-        final badge = badgeList[index];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Dynamically calculate badge size based on screen width
+        double badgeSize = (constraints.maxWidth / 4).clamp(60, 100);
 
-        return InkWell(
-          onTap: pressable ? () => onBadgeSelected?.call(index, badge) : null,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Image.asset(
-                imagePathForTier(badge.tier),
-                width: 100,
-                height: 100,
-                fit: BoxFit.contain,
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: colorScheme.onPrimary,
+            border: Border.all(color: Colors.green, width: 2),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.primary.withOpacity(0.3),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
               ),
-              Icon(badge.icon, size: 50, color: colorScheme.onSurface),
             ],
           ),
+          child: Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            alignment: WrapAlignment.center,
+            children: List.generate(badgeList.length, (index) {
+              final badge = badgeList[index];
+              return InkWell(
+                onTap: pressable ? () => onBadgeSelected?.call(index, badge) : null,
+                child: SizedBox(
+                  width: badgeSize,
+                  height: badgeSize,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Image.asset(
+                        imagePathForTier(badge.tier),
+                        width: badgeSize,
+                        height: badgeSize,
+                        fit: BoxFit.contain,
+                      ),
+                      Icon(
+                        badge.icon,
+                        size: badgeSize * 0.5,
+                        color: colorScheme.onSurface,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
         );
-      }),
-    ),
-  ),
-);
-
-
+      },
+    );
   }
 
   String imagePathForTier(int tier) {
@@ -462,6 +520,7 @@ class BadgeDisplay extends StatelessWidget {
     }
   }
 }
+
 class ChallengeBadges {
   final int tier;
   final String challenge;

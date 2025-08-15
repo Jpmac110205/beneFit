@@ -123,7 +123,7 @@ class _IncomingRequestViewState extends State<IncomingRequestView> {
                           color: colorScheme.surface,
                           boxShadow: [
                             BoxShadow(
-                              color: colorScheme.shadow.withOpacity(0.1),
+                              color: colorScheme.primary,
                               blurRadius: 6,
                               offset: const Offset(0, 3),
                             ),

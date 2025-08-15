@@ -20,6 +20,5 @@ Future<List<ChallengeBadges>> buildChallengeBadges(Duration elapsed) async {
   ChallengeBadges(tier: await nutritionTracker(), challenge: 'Nutrition Tracker', description: "Track (75,150,250) foods",icon: Icons.food_bank),
   ChallengeBadges(tier: await levelingUp(), challenge: 'Leveling Up', description: "Become a premium user",icon: Icons.star_border),
   ChallengeBadges(tier: await heavyLifter(), challenge: 'Heavy Lifter', description: "Lift a total volume of (15k,25k,40k)", icon: Icons.fitness_center),
-  ChallengeBadges(tier: socialButterfly(), challenge: 'Social Butterfly', description: "React to (5,10,20) friends in a week", icon: Icons.emoji_people),
 ];
 }

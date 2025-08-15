@@ -18,6 +18,7 @@ class StartWorkoutButton extends StatefulWidget {
 }
 
 class _StartWorkoutButtonState extends State<StartWorkoutButton> {
+  
   bool _isTapped = false;
 
   Future<void> _handleTap() async {
@@ -75,7 +76,7 @@ class _StartWorkoutButtonState extends State<StartWorkoutButton> {
     return GestureDetector(
       onTap: _handleTap,
       child: Container(
-        height: 60,
+        height: 60, 
         width: 120,
         decoration: BoxDecoration(
           color: _isTapped
@@ -83,6 +84,13 @@ class _StartWorkoutButtonState extends State<StartWorkoutButton> {
               : colorScheme.surfaceContainerHighest, // subtle background color
           border: Border.all(color: colorScheme.primary, width: 2),
           borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary,
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
         ),
         alignment: Alignment.center,
         child: Text(
