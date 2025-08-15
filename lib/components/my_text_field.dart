@@ -32,6 +32,9 @@ class MyTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
@@ -40,24 +43,61 @@ class MyTextField extends StatelessWidget {
       onTap: onTap,
       validator: validator,
       onChanged: onChanged,
-      style: style ?? TextStyle(color: Colors.black), // ✅ Apply text style
+      style: style ?? TextStyle(
+        color: colorScheme.onSurface,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
       textInputAction: TextInputAction.next,
       decoration: InputDecoration(
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
         hintText: hintText,
-        hintStyle: TextStyle(color: Colors.grey[500]),
+        hintStyle: TextStyle(
+          color: colorScheme.onSurface.withOpacity(0.5),
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+        ),
         errorText: errorMsg,
         filled: true,
-        fillColor: Colors.grey.shade200,
+        fillColor: colorScheme.surface,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.transparent),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: colorScheme.onSurface.withOpacity(0.1),
+            width: 1.5,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.secondary,
+            color: colorScheme.primary,
+            width: 2,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.red.shade400,
+            width: 1.5,
+          ),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.red.shade400,
+            width: 2,
+          ),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: colorScheme.onSurface.withOpacity(0.05),
+            width: 1.5,
           ),
         ),
       ),

@@ -6,6 +6,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:game/screens/auth/home/steps_tracker_bloc/bloc/steps_tracker_bloc.dart';
 import 'package:game/screens/auth/home/steps_tracker_bloc/bloc/steps_tracker_event.dart';
 import 'package:game/screens/auth/home/steps_tracker_bloc/bloc/steps_tracker_state.dart';
+import 'package:game/screens/auth/home/views/homepage/charts.dart';
 import 'package:game/screens/auth/home/views/workoutTracker/workout_tracker.dart';
 import 'package:health/health.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -318,7 +319,9 @@ Future<bool> pullStepsTracker() async {
                         _buildHeaderImage(boxMaxWidth),
                         const SizedBox(height: 30),
                         _buildChallengeBox(colorScheme),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 30),
+                        const MarcoBarGraph(),
+                        const SizedBox(height: 30),
                         const StepsTracker(),
                         const SizedBox(height: 150),
                       ],
@@ -456,7 +459,7 @@ class StepsTracker extends StatelessWidget {
       child: BlocBuilder<StepBloc, StepState>(
         builder: (context, state) {
           return Container(
-            height: 150,
+            height: 175,
             width: MediaQuery.of(context).size.width - 50,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -484,7 +487,9 @@ class StepsTracker extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 60),
-                  Transform.rotate(
+                Transform.translate(
+                  offset: const Offset(0, 10), // move down by 20 pixels
+                  child: Transform.rotate(
                     angle: -65 * 3.1415926535 / 180,
                     child: Icon(
                       FontAwesomeIcons.shoePrints,
@@ -492,16 +497,24 @@ class StepsTracker extends StatelessWidget {
                       color: Colors.green,
                     ),
                   ),
+                ),
+
                   ]
                 ),
 
                 Center(
-                  child: Row(children: [
-                  const SizedBox(width: 16),
-                _buildStepContent(state, colorScheme),
-                SizedBox(width: 20),
-                ],
-                )
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const SizedBox(width: 16),
+                      Flexible(
+                        child: _buildStepContent(state, colorScheme),
+                      ),
+                      const SizedBox(width: 20),
+
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -629,4 +642,37 @@ Future<bool> requestMotionPermission() async {
     return result.isGranted;
   }
   return status.isGranted;
+}
+class MarcoBarGraph extends StatelessWidget {
+  const MarcoBarGraph({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      height: 300,
+      width: MediaQuery.of(context).size.width - 50,
+       padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.onPrimary,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary,
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Macro-Specific Stats', style: TextStyle(color: colorScheme.primary, fontSize: 20, fontWeight: FontWeight.bold,),
+          ),
+          PlaceholderBarChart(),
+      ]
+      ),
+    );
+  }
 }

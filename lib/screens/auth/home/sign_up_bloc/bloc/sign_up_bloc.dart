@@ -16,7 +16,17 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
         await _userRepository.setUserData(myUser);
         emit(SignUpSuccess());
       } catch (e) {
-        emit(SignUpFailure());
+        String errorMessage = 'Sign up failed';
+        if (e.toString().contains('Username already taken')) {
+          errorMessage = 'Username already taken';
+        } else if (e.toString().contains('Email already registered')) {
+          errorMessage = 'Email already registered';
+        } else if (e.toString().contains('weak-password')) {
+          errorMessage = 'Password is too weak';
+        } else if (e.toString().contains('invalid-email')) {
+          errorMessage = 'Invalid email format';
+        }
+        emit(SignUpFailure(errorMessage));
       }
     });
   }

@@ -61,16 +61,54 @@ class FirebaseUserRepo implements UserRepository {
     }
   }
 
+  // Check if username already exists
+  Future<bool> isUsernameTaken(String username) async {
+    try {
+      final querySnapshot = await userCollection
+          .where('username', isEqualTo: username.toLowerCase())
+          .limit(1)
+          .get();
+      return querySnapshot.docs.isNotEmpty;
+    } catch (e) {
+      log('Error checking username: $e');
+      rethrow;
+    }
+  }
+
+  // Check if email already exists
+  Future<bool> isEmailTaken(String email) async {
+    try {
+      final querySnapshot = await userCollection
+          .where('email', isEqualTo: email.toLowerCase())
+          .limit(1)
+          .get();
+      return querySnapshot.docs.isNotEmpty;
+    } catch (e) {
+      log('Error checking email: $e');
+      rethrow;
+    }
+  }
+
   @override
   Future<MyUser> signUp(MyUser myUser, String password) async {
     try {
+      // Check username uniqueness
+      if (await isUsernameTaken(myUser.username)) {
+        throw Exception('Username already taken');
+      }
+      
+      // Check email uniqueness
+      if (await isEmailTaken(myUser.email)) {
+        throw Exception('Email already registered');
+      }
+
       UserCredential user = await _firebaseAuth.createUserWithEmailAndPassword(
         email: myUser.email,
         password: password,
       );
-    myUser.userId = user.user!.uid;
+      myUser.userId = user.user!.uid;
 
-    return myUser;
+      return myUser;
       
     } catch (e) {
       log(e.toString());
