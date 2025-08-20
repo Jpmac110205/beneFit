@@ -16,6 +16,7 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
         await _userRepository.setUserData(myUser);
         emit(SignUpSuccess());
       } catch (e) {
+        print('SignUpBloc error: $e'); 
         String errorMessage = 'Sign up failed';
         if (e.toString().contains('Username already taken')) {
           errorMessage = 'Username already taken';

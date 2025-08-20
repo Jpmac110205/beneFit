@@ -78,7 +78,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     Text('Dark Mode', style: theme.textTheme.bodyMedium),
                     Switch(
                       value: themeNotifier.isDarkMode,
-                      activeColor: theme.colorScheme.primary, // Use activeColor instead
+                      activeThumbColor: theme.colorScheme.primary, // Use activeColor instead
                       inactiveThumbColor: theme.disabledColor,
                       onChanged: (value) {
                         themeNotifier.setTheme(value);

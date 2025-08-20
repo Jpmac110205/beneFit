@@ -120,7 +120,7 @@ class _IncomingRequestViewState extends State<IncomingRequestView> {
                         decoration: BoxDecoration(
                           border: Border.all(color: colorScheme.primary, width: 2),
                           borderRadius: BorderRadius.circular(12),
-                          color: colorScheme.surface,
+                          color: colorScheme.onPrimary,
                           boxShadow: [
                             BoxShadow(
                               color: colorScheme.primary,

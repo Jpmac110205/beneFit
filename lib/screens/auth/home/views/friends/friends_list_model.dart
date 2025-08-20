@@ -16,17 +16,8 @@ class FriendsList {
   });
 
   /// Considered active if active within the last 24 hours
-  bool get isActive => DateTime.now().difference(lastActive).inHours <= 24;
+bool get isActive => DateTime.now().difference(lastActive) <= Duration(minutes: 5);
 
-  /// Call this method to increase streak only if within 24-hour window
-  void updateStreak() {
-    final hoursAgo = DateTime.now().difference(lastActive).inHours;
-    if (hoursAgo <= 24) {
-      streak += 1;
-    } else {
-      streak = 0;
-    }
-  }
 
   /// Factory constructor to build FriendsList object from Firestore data
   factory FriendsList.fromMap(String uid, Map<String, dynamic> data) {

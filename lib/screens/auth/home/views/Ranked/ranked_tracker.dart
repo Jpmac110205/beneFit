@@ -338,7 +338,7 @@ void dispose() {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     DropdownButtonFormField<String>(
-                      value: selectedWorkoutName,
+                      initialValue: selectedWorkoutName,
                       isExpanded: true,
                       decoration: const InputDecoration(labelText: 'Select Workout', border: OutlineInputBorder()),
                       items: workouts.map((w) => DropdownMenuItem<String>(value: w.workout, child: Text(w.workout))).toList(),

@@ -140,7 +140,7 @@ Future<void> resetDailyChallengesIfNeeded() async {
           isAbleToBeCollected: false,
         ),
         DailyChallenge(
-          name: 'Walk 10k Steps',
+          name: 'Walk 5k Steps',
           expRewarded: 20,
           isCompletedToday: false,
           isAbleToBeCollected: false,
@@ -202,7 +202,7 @@ Future<void> resetDailyChallengesIfNeeded() async {
               didWorkoutToday && !challenge.isCompletedToday,
         );
       }
-      else if (challenge.name == 'Walk 10k Steps') {
+      else if (challenge.name == 'Walk 5k Steps') {
   return DailyChallenge(
     name: challenge.name,
     expRewarded: challenge.expRewarded,
@@ -224,13 +224,13 @@ Future<bool> pullStepsTracker() async {
       .collection('users')
       .doc(user.uid)
       .collection('dailyChallenges')
-      .doc('Walk 10k Steps')
+      .doc('Walk 5k Steps')
       .get();
 
   final health = Health();
   final steps = await getStepCount(health);
 
-  if (steps >= 10000) {
+  if (steps >= 5000) {
     await snapshot.reference.update({
       'isAbleToBeCollected': true,
     });
@@ -643,16 +643,46 @@ Future<bool> requestMotionPermission() async {
   }
   return status.isGranted;
 }
-class MarcoBarGraph extends StatelessWidget {
+
+
+class MarcoBarGraph extends StatefulWidget {
   const MarcoBarGraph({super.key});
 
   @override
+  _MarcoBarGraphState createState() => _MarcoBarGraphState();
+}
+
+class _MarcoBarGraphState extends State<MarcoBarGraph> {
+  String macro = 'protein';
+  double goal = 0.0;
+  final barValues = [10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchGoal();
+  }
+
+  void _fetchGoal() async {
+  String macroForGoal = macro;
+  if (macroForGoal == 'carbs') macroForGoal = 'carb'; // map plural to singular
+  int value = await grabGoals(macroForGoal);
+  setState(() {
+    goal = value.toDouble();
+  });
+}
+
+
+
+
+  @override
   Widget build(BuildContext context) {
-final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
-      height: 300,
+      height: 350,
       width: MediaQuery.of(context).size.width - 50,
-       padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colorScheme.onPrimary,
         borderRadius: BorderRadius.circular(12),
@@ -668,10 +698,33 @@ final colorScheme = Theme.of(context).colorScheme;
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Macro-Specific Stats', style: TextStyle(color: colorScheme.primary, fontSize: 20, fontWeight: FontWeight.bold,),
+            'Macro-Specific Stats',
+            style: TextStyle(
+              color: colorScheme.primary,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          PlaceholderBarChart(),
-      ]
+          const SizedBox(height: 16),
+          PlaceholderBarChart(macro: macro), // Pass macro here
+          const SizedBox(height: 16),
+          Center(
+            child: DropdownButton<String>(
+              value: macro,
+              items: <String>['protein', 'fat', 'carbs'].map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value, style: TextStyle(color: colorScheme.primary)),
+                );
+              }).toList(),
+               onChanged: (String? newValue) {
+            setState(() {
+              macro = newValue!;
+            });
+          },
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -34,7 +34,7 @@ class _ChallengesHomeState extends State<ChallengesHome> {
   }
 
   Future<void> loadInitialData() async {
-  await loadUserLevelAndProgress(); // Only load once (includes badges)
+  await loadUserLevelAndProgress(); 
   await loadFriendsData();          // Load other stuff
   final challenges = await buildChallengeBadges(elapsed); // for _buildChallengesTab
   if (mounted) {
@@ -558,5 +558,21 @@ class ChallengeBadges {
         matchTextDirection: map['iconDirection'],
       ),
     );
+  }
+}
+Future<void> initializeUserDocument(String uid, String name) async {
+  final docRef = FirebaseFirestore.instance.collection('users').doc(uid);
+  final doc = await docRef.get();
+
+  if (!doc.exists) {
+    await docRef.set({
+      'accountLevel': 1,
+      'totalExp': 0,
+      'savedBadges': [],
+      'friends': [],
+      'incomingRequests': [],
+      'outgoingRequests': [],
+      'name': name,
+    });
   }
 }

@@ -99,6 +99,16 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
       },
     );
   }
+  Future<bool> isActiveGetter(String friendId) async{
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+
+    final doc = await FirebaseFirestore.instance.collection('users').doc(friendId).get();
+    if (!doc.exists) return false;
+
+    final data = doc.data()!;
+    return data['isActive'] ?? false;
+  }
 
   Future<void> _fetchFriendBadges(String friendId) async {
     try {
@@ -243,14 +253,21 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                                                 ),
                                               ),
                                               const SizedBox(height: 4),
-                                              Text(
-                                                friend.isActive
-                                                    ? 'Active Now'
-                                                    : 'Last Active: ${DateTime.now().difference(friend.lastActive).inHours} hours ago',
-                                                style: theme.textTheme.bodySmall?.copyWith(
-                                                  color: colorScheme.outline,
-                                                ),
+                                              FutureBuilder<bool>(
+                                                future: isActiveGetter(friend.uid),
+                                                builder: (context, snapshot) {
+                                                  final isActive = snapshot.data ?? false;
+                                                  return Text(
+                                                    isActive
+                                                        ? 'Active Now'
+                                                        : 'Inactive',
+                                                    style: theme.textTheme.bodySmall?.copyWith(
+                                                      color: colorScheme.outline,
+                                                    ),
+                                                  );
+                                                },
                                               ),
+
                                             ],
                                           ),
                                           Row(

@@ -18,18 +18,18 @@ Future<List<Map<String, dynamic>>> getUserFriendsData() async {
   }
 
   final friendDocs = await Future.wait(friendIds.map((fid) async {
-    final friendDoc = await FirebaseFirestore.instance.collection('users').doc(fid).get();
-    if (!friendDoc.exists) return null;
+  final friendDoc = await FirebaseFirestore.instance.collection('users').doc(fid).get();
+  if (!friendDoc.exists) return null;
 
-    final friendData = friendDoc.data();
+  final friendData = friendDoc.data();
+  return {
+    'accountLevel': friendData?['accountLevel'] ?? 1, // default 1
+    'name': friendData?['name'] ?? 'Unknown',
+    'totalExp': friendData?['totalExp'] ?? 0,
+    'isUser': fid == user.uid,
+  };
+}));
 
-    return {
-      'name': friendData?['name'] ?? 'Unknown',
-      'totalExp': friendData?['totalExp'] ?? 0,
-      'isUser': fid == user.uid,
-      'accountLevel': friendData?['accountLevel'] ?? 0,
-    };
-  }));
 
   final filtered = friendDocs.whereType<Map<String, dynamic>>().toList();
   filtered.sort((a, b) => (b['totalExp'] as int).compareTo(a['totalExp'] as int));

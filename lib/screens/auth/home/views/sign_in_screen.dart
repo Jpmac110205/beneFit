@@ -298,7 +298,7 @@ class _SignInScreenState extends State<SignInScreen> {
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     
-    return Container(
+    return SizedBox(
       height: 48,
       child: OutlinedButton.icon(
         onPressed: onPressed,

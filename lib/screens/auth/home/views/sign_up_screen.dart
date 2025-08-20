@@ -399,7 +399,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                                 passwordController.text,
                                               ),
                                             );
+
+                                        // Initialize user document in Firestore
                                       }
+
                                     }
                                   : null,
                               style: ElevatedButton.styleFrom(

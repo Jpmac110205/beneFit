@@ -25,9 +25,6 @@ class _SearchViewState extends State<SearchView> {
     final isSearching = searchManager.isSearching;
     final displayList = isSearching ? searchManager.searchResults : friend_selections;
 
-    for (var friend in displayList) {
-      friend.updateStreak();
-    }
     displayList.sort((a, b) {
       if (a.isActive && !b.isActive) return -1;
       if (!a.isActive && b.isActive) return 1;
