@@ -6,6 +6,12 @@ import 'package:game/screens/auth/home/views/challenges/friends_service.dart';
 import 'package:game/screens/auth/home/views/challenges/list_of_challenges.dart';
 import 'package:game/screens/auth/home/views/workoutTracker/workoutProvider.dart';
 
+class ChallengeCache {
+  static List<ChallengeBadges>? challenges;
+  static List<ChallengeBadges>? badges;
+  static Map<String, dynamic>? userLevel;   
+  static List<Map<String, dynamic>>? friends;
+}
 
 class ChallengesHome extends StatefulWidget {
   const ChallengesHome({super.key});
@@ -27,25 +33,69 @@ class _ChallengesHomeState extends State<ChallengesHome> {
   List<ChallengeBadges> badgeList = [];
 
   @override
-  void initState() {
-    super.initState();
-    elapsed = Duration(seconds: WorkoutProvider().secondsWorkedOut);
-    loadInitialData();
-  }
+void initState() {
+  super.initState();
+  elapsed = Duration(seconds: WorkoutProvider().secondsWorkedOut);
+  loadInitialData();
 
-  Future<void> loadInitialData() async {
-  await loadUserLevelAndProgress(); 
-  await loadFriendsData();          // Load other stuff
-  final challenges = await buildChallengeBadges(elapsed); // for _buildChallengesTab
-  if (mounted) {
-    setState(() {
-      cachedChallenges = challenges;
-    });
-  }
+  FirebaseFirestore.instance
+      .collection('users')
+      .doc(user!.uid)
+      .snapshots()
+      .listen((doc) async {
+        final data = doc.data();
+        if (data != null && mounted) {
+          final savedBadges = data['savedBadges'] ?? [];
+          final badgeListFromDb = savedBadges
+              .map<ChallengeBadges>((map) => ChallengeBadges.fromMap(map))
+              .toList();
+
+          final totalExp = data['totalExp'] ?? 0;
+          final levelData = accountLevelCalculator(1, totalExp);
+
+          setState(() {
+            badgeList = badgeListFromDb;
+            userAccountLevel = levelData['level'];
+            userTotalExp = totalExp;
+            levelProgress = levelData['progress'];
+          });
+
+          // 🔄 update cache
+          ChallengeCache.badges = badgeListFromDb;
+          ChallengeCache.userLevel = {
+            'level': levelData['level'],
+            'exp': totalExp,
+            'progress': levelData['progress'],
+          };
+        }
+      });
 }
 
 
-  
+
+  Future<void> loadInitialData() async {
+  // Load challenges
+  if (ChallengeCache.challenges != null) {
+    cachedChallenges = ChallengeCache.challenges!;
+  }
+
+  // Load badges and user level
+  await loadUserLevelAndProgress();
+
+  // Load friends leaderboard
+  await loadFriendsData();
+
+  // Build challenges if not cached
+  if (cachedChallenges == null) {
+    final challenges = await buildChallengeBadges(elapsed);
+    if (!mounted) return;
+    setState(() {
+      cachedChallenges = challenges;
+    });
+    ChallengeCache.challenges = challenges;
+  }
+}
+ 
   Future<void> saveBadgeListToFirestore() async {
   final badgeMaps = badgeList.map((badge) => badge.toMap()).toList();
 
@@ -59,13 +109,24 @@ class _ChallengesHomeState extends State<ChallengesHome> {
 
 
   Future<void> loadUserLevelAndProgress() async {
+  if (ChallengeCache.userLevel != null && ChallengeCache.badges != null) {
+    // ✅ Use cached
+    setState(() {
+      userAccountLevel = ChallengeCache.userLevel!['level'];
+      userTotalExp = ChallengeCache.userLevel!['exp'];
+      levelProgress = ChallengeCache.userLevel!['progress'];
+      badgeList = ChallengeCache.badges!;
+    });
+    return;
+  }
+
+  // ❌ Otherwise fetch from Firestore
   final doc = await FirebaseFirestore.instance
       .collection('users')
       .doc(user!.uid)
       .get();
   final data = doc.data();
 
-  final List<dynamic>? savedBadges = data?['savedBadges'];
   final currentLevel = data?['accountLevel'] ?? 1;
   final totalExp = data?['totalExp'] ?? 0;
   final levelData = accountLevelCalculator(1, totalExp);
@@ -78,26 +139,13 @@ class _ChallengesHomeState extends State<ChallengesHome> {
   }
 
   List<ChallengeBadges> finalBadgeList;
-
+  final List<dynamic>? savedBadges = data?['savedBadges'];
   if (savedBadges != null && savedBadges.isNotEmpty) {
     finalBadgeList = savedBadges
         .map((badgeData) => ChallengeBadges.fromMap(badgeData))
         .toList();
   } else {
-    // fallback if nothing is stored yet
-    final challenges = await buildChallengeBadges(elapsed);
-    finalBadgeList = List.generate(3, (index) {
-      if (index < challenges.length) {
-        return challenges[index];
-      } else {
-        return const ChallengeBadges(
-          tier: 1,
-          challenge: 'DEFAULT',
-          description: 'DEFAULT',
-          icon: Icons.add,
-        );
-      }
-    });
+    finalBadgeList = await buildChallengeBadges(elapsed);
   }
 
   if (!mounted) return;
@@ -108,16 +156,35 @@ class _ChallengesHomeState extends State<ChallengesHome> {
     userTotalExp = totalExp;
     levelProgress = levelData['progress'];
   });
+
+  // ✅ Save to cache
+  ChallengeCache.userLevel = {
+    'level': levelData['level'],
+    'exp': totalExp,
+    'progress': levelData['progress'],
+  };
+  ChallengeCache.badges = finalBadgeList;
 }
 
 
+
   Future<void> loadFriendsData() async {
-    final friends = await getUserFriendsData();
-    if (!mounted) return;
+  if (ChallengeCache.friends != null) {
     setState(() {
-      cachedFriends = friends;
+      cachedFriends = ChallengeCache.friends;
     });
+    return;
   }
+
+  final friends = await getUserFriendsData(); // fetch from backend
+  if (!mounted) return;
+
+  setState(() {
+    cachedFriends = friends;
+  });
+
+  ChallengeCache.friends = friends; // save to cache
+}
 
   Future<void> loadChallengeBadges() async {
     final challenges = await buildChallengeBadges(elapsed);

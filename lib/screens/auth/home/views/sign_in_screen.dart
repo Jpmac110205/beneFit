@@ -16,25 +16,21 @@ class _SignInScreenState extends State<SignInScreen> {
   final emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool signInRequired = false;
-  IconData iconPassword = CupertinoIcons.eye_fill;
   bool obscurePassword = true;
+  IconData iconPassword = CupertinoIcons.eye_fill;
   String? _errorMsg;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     return BlocListener<SignInBloc, SignInState>(
       listener: (context, state) {
         if (state is SignInSuccess) {
-          setState(() {
-            signInRequired = false;
-          });
+          setState(() => signInRequired = false);
         } else if (state is SignInProcess) {
-          setState(() {
-            signInRequired = true;
-          });
+          setState(() => signInRequired = true);
         } else if (state is SignInFailure) {
           setState(() {
             signInRequired = false;
@@ -51,7 +47,6 @@ class _SignInScreenState extends State<SignInScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header Section
                   const SizedBox(height: 40),
                   Text(
                     'Welcome Back',
@@ -104,11 +99,9 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                             errorMsg: _errorMsg,
                             validator: (val) {
-                              if (val!.isEmpty) {
-                                return 'Please enter your email';
-                              } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(val)) {
-                                return 'Please enter a valid email';
-                              }
+                              if (val!.isEmpty) return 'Please enter your email';
+                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                  .hasMatch(val)) return 'Please enter a valid email';
                               return null;
                             },
                           ),
@@ -129,9 +122,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                             errorMsg: _errorMsg,
                             validator: (val) {
-                              if (val!.isEmpty) {
-                                return 'Please enter your password';
-                              }
+                              if (val!.isEmpty) return 'Please enter your password';
                               return null;
                             },
                             suffixIcon: IconButton(
@@ -190,8 +181,10 @@ class _SignInScreenState extends State<SignInScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                disabledBackgroundColor: colorScheme.onSurface.withOpacity(0.12),
-                                disabledForegroundColor: colorScheme.onSurface.withOpacity(0.38),
+                                disabledBackgroundColor:
+                                    colorScheme.onSurface.withOpacity(0.12),
+                                disabledForegroundColor:
+                                    colorScheme.onSurface.withOpacity(0.38),
                               ),
                               child: signInRequired
                                   ? SizedBox(
@@ -213,60 +206,6 @@ class _SignInScreenState extends State<SignInScreen> {
                                     ),
                             ),
                           ),
-
-                          const SizedBox(height: 24),
-
-                          // Divider
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Divider(
-                                  color: colorScheme.onSurface.withOpacity(0.2),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                child: Text(
-                                  'or',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: colorScheme.onSurface.withOpacity(0.6),
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: Divider(
-                                  color: colorScheme.onSurface.withOpacity(0.2),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // Social Sign In Options
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildSocialButton(
-                                  icon: 'assets/images/google_icon.png', // You'll need to add this asset
-                                  label: 'Google',
-                                  onPressed: () {
-                                    // TODO: Implement Google sign in
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _buildSocialButton(
-                                  icon: 'assets/images/apple_icon.png', // You'll need to add this asset
-                                  label: 'Apple',
-                                  onPressed: () {
-                                    // TODO: Implement Apple sign in
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
                         ],
                       ),
                     ),
@@ -285,52 +224,9 @@ class _SignInScreenState extends State<SignInScreen> {
     return Text(
       label,
       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-        fontWeight: FontWeight.w600,
-        color: Theme.of(context).colorScheme.onSurface,
-      ),
-    );
-  }
-
-  Widget _buildSocialButton({
-    required String icon,
-    required String label,
-    required VoidCallback onPressed,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    
-    return SizedBox(
-      height: 48,
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        icon: Image.asset(
-          icon,
-          height: 20,
-          width: 20,
-          errorBuilder: (context, error, stackTrace) {
-                         // Fallback icon if asset is not found
-             return Icon(
-               label == 'Google' ? CupertinoIcons.globe : CupertinoIcons.device_phone_portrait,
-               size: 20,
-               color: colorScheme.onSurface,
-             );
-          },
-        ),
-        label: Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w600,
-            color: colorScheme.onSurface,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
-        ),
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(
-            color: colorScheme.onSurface.withOpacity(0.2),
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
     );
   }
 }

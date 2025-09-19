@@ -1,5 +1,7 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:game/components/my_text_field.dart';
+import 'package:game/screens/privacy_policy.dart';
 import 'package:game/screens/auth/home/sign_up_bloc/bloc/sign_up_bloc.dart';
 import 'package:user_repository/user_repository.dart';
 import 'package:flutter/cupertino.dart';
@@ -319,25 +321,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                         color: colorScheme.onSurface,
                                       ),
                                       children: [
-                                        const TextSpan(text: 'I agree to the '),
-                                        TextSpan(
-                                          text: 'Privacy Policy',
-                                          style: TextStyle(
-                                            color: colorScheme.primary,
-                                            decoration: TextDecoration.underline,
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                      const TextSpan(text: 'I agree to the '),
+                                      TextSpan(
+                                        text: 'Privacy Policy',
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.primary,
+                                          decoration: TextDecoration.underline,
+                                          fontWeight: FontWeight.w600,
                                         ),
-                                        const TextSpan(text: ' and '),
-                                        TextSpan(
-                                          text: 'Terms of Service',
-                                          style: TextStyle(
-                                            color: colorScheme.primary,
-                                            decoration: TextDecoration.underline,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
+                                        recognizer: TapGestureRecognizer()
+                                          ..onTap = () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => const PrivacyPolicyPage(),
+                                              ),
+                                            );
+                                          },
+                                      ),
+                                    ],
                                     ),
                                   ),
                                 ),

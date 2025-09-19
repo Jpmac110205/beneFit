@@ -182,7 +182,7 @@ Future<int> findTotalVolume() async {
     setState(() {
       for (var exercise in exercises) {
         for (var set in exercise.sets) {
-          set.isComplete = true;
+          set.isComplete = false;
         }
       }
     });

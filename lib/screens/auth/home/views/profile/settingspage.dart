@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:game/screens/privacy_policy.dart';
 import 'package:provider/provider.dart';
 import 'package:game/screens/auth/home/views/profile/manageAccount.dart';
 import 'package:game/screens/auth/home/views/theme_notifier.dart';
@@ -169,6 +170,13 @@ Widget PrivacyPolicyButton(BuildContext context) {
 
   return ElevatedButton(
     onPressed: () {
+      // Navigate to the Privacy Policy page
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const PrivacyPolicyPage(),
+        ),
+      );
     },
     style: ElevatedButton.styleFrom(
       minimumSize: const Size(200, 50),
@@ -178,7 +186,9 @@ Widget PrivacyPolicyButton(BuildContext context) {
     ),
     child: Text(
       'Privacy Policy',
-      style: theme.textTheme.bodyLarge?.copyWith(color: theme.textTheme.bodyLarge?.color),
+      style: theme.textTheme.bodyLarge?.copyWith(
+        color: theme.textTheme.bodyLarge?.color,
+      ),
     ),
   );
 }

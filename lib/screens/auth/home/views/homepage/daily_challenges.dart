@@ -576,7 +576,6 @@ Future<int> getStepCount(Health health) async {
   try {
     final granted = await requestMotionPermission();
     if (!granted) {
-      debugPrint("Motion/Activity permission not granted.");
       return 0;
     }
 
